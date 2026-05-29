@@ -426,26 +426,17 @@ function ClientSelector({ value, clients, onChange, onAddNew }) {
 }
 
 export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [], onClientAdded }) {
-  const [d, setD] = useState(() => {
-    // Check if coming from a lead conversion
-    let leadPrefill = {}
-    try {
-      const raw = sessionStorage.getItem('tw_lead_prefill')
-      if (raw) { leadPrefill = JSON.parse(raw); sessionStorage.removeItem('tw_lead_prefill') }
-    } catch {}
-    return {
-      clientName:'', email:'', phone:'', date:today(), validUntil:'',
-      type:'misa', paymentTerms:'50% Initial payment, 25% after MISA, 25% after CR', notes:'',
-      vatEnabled: true,
-      misaItems: JSON.parse(JSON.stringify(MISA_DEFAULT_ITEMS)),
-      misaTotal: 25000, misaTotalWords:'Twenty Five Thousand Saudi Riyals Only',
-      lineItems:[{ id:1, desc:'', qty:1, price:0 }],
-      hrServices: [],
-      hrTotal: '', hrPricingLabel: 'HR works as described for the company of size upto 10 employee per month',
-      ...leadPrefill,
-      ...initial,
-    }
-  })
+  const [d, setD] = useState(() => ({
+    clientName:'', email:'', phone:'', date:today(), validUntil:'',
+    type:'misa', paymentTerms:'50% Initial payment, 25% after MISA, 25% after CR', notes:'',
+    vatEnabled: true,
+    misaItems: JSON.parse(JSON.stringify(MISA_DEFAULT_ITEMS)),
+    misaTotal: 25000, misaTotalWords:'Twenty Five Thousand Saudi Riyals Only',
+    lineItems:[{ id:1, desc:'', qty:1, price:0 }],
+    hrServices: [],
+    hrTotal: '', hrPricingLabel: 'HR works as described for the company of size upto 10 employee per month',
+    ...initial,
+  }))
   const [busy, setBusy] = useState(false)
   const [addingClient, setAddingClient] = useState(false)
 

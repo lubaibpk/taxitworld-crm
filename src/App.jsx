@@ -19,6 +19,7 @@ import LeadsView      from './views/LeadsView.jsx'
 
 const ADMIN_NAV = [
   { key:'dashboard',   label:'Dashboard',   icon:LayoutDashboard, group:'main'    },
+  { key:'leads',       label:'Leads',       icon:Funnel,          group:'main'    },
   { key:'new-quote',   label:'New Quote',   icon:FilePlus,        group:'main'    },
   { key:'pipeline',    label:'Pipeline',    icon:Kanban,          group:'main'    },
   { key:'quotes-list', label:'All Quotes',  icon:List,            group:'records' },
@@ -27,7 +28,6 @@ const ADMIN_NAV = [
   { key:'trash',       label:'Trash',       icon:Trash2,          group:'records' },
   { key:'my-tasks',    label:'My Tasks',    icon:CheckSquare,     group:'admin'   },
   { key:'users',       label:'Users',       icon:Users,           group:'admin'   },
-  { key:'leads',       label:'Leads',       icon:Funnel,          group:'crm'     },
   { key:'clients',     label:'Clients',     icon:Users,           group:'crm'     },
   { key:'reports',     label:'Reports',     icon:LayoutDashboard, group:'crm'     },
 ]
@@ -160,20 +160,39 @@ export default function App() {
   const [title, sub]  = TITLES[view||'dashboard']||['TaxitWorld','']
   const NAV           = isAdmin ? ADMIN_NAV : STAFF_NAV
 
-  // Convert a lead into a pre-filled new quote
-  const convertLeadToQuote = (lead) => {
-    const prefilled = {
-      clientName: lead.name || lead.company || '',
-      phone:      lead.phone || '',
-      email:      lead.email || '',
-      _fromLead:  lead.id,
-    }
-    setEditing(null)
-    setView('new-quote')
-    // Store lead prefill in sessionStorage so QuoteForm can pick it up
-    sessionStorage.setItem('tw_lead_prefill', JSON.stringify(prefilled))
-    setSideOpen(false)
-  }
+  // Convert a lead into a real draft quote → lead disappears from leads, quote lands in pipeline draft
+  const convertLeadToQuote = useCallback(async (lead) => {
+    try {
+      const newId = uid()
+      const q = {
+        id:           newId,
+        quoteNumber:  qNumber(quotes.length),
+        stage:        'draft',
+        clientName:   lead.name || lead.company || '',
+        phone:        lead.phone || '',
+        email:        lead.email || '',
+        date:         new Date().toISOString().slice(0,10),
+        validUntil:   '',
+        type:         'generic',
+        paymentTerms: '50% advance, 50% on completion',
+        notes:        lead.service_interest ? `Service Interest: ${lead.service_interest}` : '',
+        checklist:    [],
+        followUpDate: '',
+        createdAt:    Date.now(),
+        vatEnabled:   true,
+        lineItems:    [{ id: 1, desc: '', qty: 1, price: 0 }],
+        misaItems:    [],
+        hrServices:   [],
+        _fromLead:    lead.id,
+      }
+      const saved = await upsertQuote(q)
+      setQuotes(prev => [saved, ...prev])
+      await convertLead(lead.id, newId)
+      showToast('Lead converted — draft quote created!')
+      setView('pipeline')
+      setSideOpen(false)
+    } catch(e) { showToast(e.message, 'error') }
+  }, [quotes.length])
 
   if (!currentUser) return <Login onLogin={handleLogin}/>
 
@@ -370,7 +389,7 @@ export default function App() {
           {view==='my-tasks'     && <MyTasks         quotes={activeQuotes} currentUser={currentUser} onUpdate={updateQuote} onFinish={id=>{ const q=activeQuotes.find(x=>x.id===id); if(q) updateQuote({...q,stage:'finished'}) }}/>}
           {view==='clients'     && <ClientsView onRefresh={refreshClients}/>}
           {view==='reports'     && <ReportsView quotes={quotes.filter(q=>!q.deletedAt)}/>}
-          {view==='leads'       && <LeadsView users={users} onConvertToQuote={convertLeadToQuote}/>}
+          {view==='leads'       && <LeadsView users={users} onConvertToQuote={convertLeadToQuote} onClientSaved={refreshClients}/>}
           {view==='quote-detail' && detailQuote && (
             <QuoteDetail q={detailQuote} users={users} currentUser={currentUser}
               onUpdate={updateQuote} onEdit={editQuote} onDelete={deleteQuote} onBack={()=>goto('quotes-list')}/>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Search, UserPlus, Phone, Mail, Building2, Tag, ArrowRight, Trash2, Edit3, X, Check, ChevronDown } from 'lucide-react'
-import { fetchLeads, upsertLead, deleteLead } from '../supabase.js'
+import { fetchLeads, upsertLead, deleteLead, upsertClient } from '../supabase.js'
 
 // ── Constants ─────────────────────────────────────────────────
 export const LEAD_SOURCES = [
@@ -293,11 +293,11 @@ function LeadCard({ lead, onEdit, onDelete, onConvert }) {
 }
 
 // ── Main LeadsView ─────────────────────────────────────────────
-export default function LeadsView({ users = [], onConvertToQuote, onRefresh }) {
+export default function LeadsView({ users = [], onConvertToQuote, onClientSaved }) {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('active') // default hides converted
   const [filterSource, setFilterSource] = useState('all')
   const [showModal, setShowModal] = useState(false)
   const [editLead, setEditLead] = useState(null)
@@ -320,15 +320,36 @@ export default function LeadsView({ users = [], onConvertToQuote, onRefresh }) {
   useEffect(() => { load() }, [])
 
   const handleSave = async (form) => {
+    const isEdit = !!editLead?.id
     const saved = await upsertLead(form)
     setLeads(prev => {
       const idx = prev.findIndex(x => x.id === saved.id)
       return idx > -1 ? prev.map(x => x.id === saved.id ? saved : x) : [saved, ...prev]
     })
+
+    // Auto-create/update a client record from this lead
+    try {
+      const clientPayload = {
+        name:    saved.name || '',
+        company: saved.company || '',
+        email:   saved.email || '',
+        phone:   saved.phone || '',
+        notes:   saved.notes || '',
+        source:  saved.source || '',
+      }
+      // Only create (no id) — we don't want to overwrite an existing matched client
+      if (!isEdit) {
+        await upsertClient(clientPayload)
+        if (onClientSaved) onClientSaved()
+      }
+    } catch(e) {
+      // Client save is best-effort — don't block the lead save
+      console.warn('Auto-client save failed:', e.message)
+    }
+
     setShowModal(false)
     setEditLead(null)
-    showToast(editLead ? 'Lead updated!' : 'Lead added!')
-    if (onRefresh) onRefresh()
+    showToast(isEdit ? 'Lead updated!' : 'Lead added & client saved!')
   }
 
   const handleDelete = async (id) => {
@@ -346,7 +367,7 @@ export default function LeadsView({ users = [], onConvertToQuote, onRefresh }) {
     if (onConvertToQuote) onConvertToQuote(lead)
   }
 
-  // Filtered leads
+  // Filtered leads — 'active' hides converted & lost by default
   const filtered = leads.filter(l => {
     const q = search.toLowerCase()
     const matchSearch = !search
@@ -354,7 +375,11 @@ export default function LeadsView({ users = [], onConvertToQuote, onRefresh }) {
       || l.company?.toLowerCase().includes(q)
       || l.phone?.includes(q)
       || l.email?.toLowerCase().includes(q)
-    const matchStatus = filterStatus === 'all' || l.status === filterStatus
+    const matchStatus = filterStatus === 'all'
+      ? true
+      : filterStatus === 'active'
+        ? !['converted', 'lost'].includes(l.status)
+        : l.status === filterStatus
     const matchSource = filterSource === 'all' || l.source === filterSource
     return matchSearch && matchStatus && matchSource
   })
@@ -378,10 +403,9 @@ export default function LeadsView({ users = [], onConvertToQuote, onRefresh }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {stats.map(s => (
           <button key={s.value}
-            onClick={() => setFilterStatus(prev => prev === s.value ? 'all' : s.value)}
+            onClick={() => setFilterStatus(prev => prev === s.value ? 'active' : s.value)}
             className={`bg-white rounded-2xl border p-4 text-left shadow-sm hover:shadow-md transition-all
-              ${filterStatus === s.value ? 'ring-2 ring-offset-1' : ''}`}
-            style={filterStatus === s.value ? {ringColor:'#1A2B6B'} : {}}>
+              ${filterStatus === s.value ? 'border-[#1A2B6B] ring-2 ring-[#1A2B6B]/20' : 'border-slate-200'}`}>
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{s.label}</p>
             <p className="text-2xl font-extrabold mt-1" style={{color:'#1A2B6B'}}>{s.count}</p>
           </button>
@@ -412,7 +436,8 @@ export default function LeadsView({ users = [], onConvertToQuote, onRefresh }) {
           <select
             className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="all">All Statuses</option>
+            <option value="active">Active Leads</option>
+            <option value="all">All (incl. Converted)</option>
             {LEAD_STATUSES.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
