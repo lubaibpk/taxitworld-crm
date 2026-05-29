@@ -426,17 +426,28 @@ function ClientSelector({ value, clients, onChange, onAddNew }) {
 }
 
 export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [], onClientAdded }) {
-  const [d, setD] = useState(() => ({
-    clientName:'', email:'', phone:'', date:today(), validUntil:'',
-    type:'misa', paymentTerms:'50% Initial payment, 25% after MISA, 25% after CR', notes:'',
-    vatEnabled: true,
-    misaItems: JSON.parse(JSON.stringify(MISA_DEFAULT_ITEMS)),
-    misaTotal: 25000, misaTotalWords:'Twenty Five Thousand Saudi Riyals Only',
-    lineItems:[{ id:1, desc:'', qty:1, price:0 }],
-    hrServices: [],
-    hrTotal: '', hrPricingLabel: 'HR works as described for the company of size upto 10 employee per month',
-    ...initial,
-  }))
+  const [d, setD] = useState(() => {
+    const base = {
+      clientName:'', email:'', phone:'', date:today(), validUntil:'',
+      type:'misa', paymentTerms:'50% Initial payment, 25% after MISA, 25% after CR', notes:'',
+      vatEnabled: true,
+      misaItems: JSON.parse(JSON.stringify(MISA_DEFAULT_ITEMS)),
+      misaTotal: 25000, misaTotalWords:'Twenty Five Thousand Saudi Riyals Only',
+      lineItems:[{ id:1, desc:'', qty:1, price:0 }],
+      hrServices: [],
+      hrTotal: '', hrPricingLabel: 'HR works as described for the company of size upto 10 employee per month',
+    }
+    if (!initial) return base
+    return {
+      ...base,
+      ...initial,
+      // If editing a quote that has no misaItems saved (e.g. converted from lead),
+      // fall back to the default MISA items so the form isn't blank
+      misaItems: (initial.misaItems && initial.misaItems.length > 0)
+        ? initial.misaItems
+        : JSON.parse(JSON.stringify(MISA_DEFAULT_ITEMS)),
+    }
+  })
   const [busy, setBusy] = useState(false)
   const [addingClient, setAddingClient] = useState(false)
 

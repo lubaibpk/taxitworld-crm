@@ -181,7 +181,7 @@ export default function App() {
         createdAt:    Date.now(),
         vatEnabled:   true,
         lineItems:    [{ id: 1, desc: '', qty: 1, price: 0 }],
-        misaItems:    [],
+        misaItems:    null,
         hrServices:   [],
         _fromLead:    lead.id,
       }
