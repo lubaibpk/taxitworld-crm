@@ -147,3 +147,38 @@ export async function archiveClient(id) {
     .from('crm_clients').update({ deleted_at: new Date().toISOString() }).eq('id', id)
   if (error) throw error
 }
+
+// ── Lead helpers ──────────────────────────────────────────────
+export async function fetchLeads() {
+  const { data, error } = await supabase
+    .from('crm_leads')
+    .select('*')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function upsertLead(l) {
+  const payload = { ...l, updated_at: new Date().toISOString() }
+  if (!payload.id) delete payload.id
+  const { data, error } = await supabase
+    .from('crm_leads').upsert(payload, { onConflict: 'id' }).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteLead(id) {
+  const { error } = await supabase
+    .from('crm_leads').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+export async function convertLead(leadId, quoteId) {
+  const { data, error } = await supabase
+    .from('crm_leads')
+    .update({ status: 'converted', converted_quote_id: quoteId, updated_at: new Date().toISOString() })
+    .eq('id', leadId).select().single()
+  if (error) throw error
+  return data
+}

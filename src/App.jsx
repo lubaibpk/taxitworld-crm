@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, FilePlus, Kanban, List, Briefcase, Archive as ArchiveIcon, Trash2, Users, CheckSquare, Menu, X, ChevronLeft } from 'lucide-react'
-import { fetchQuotes, upsertQuote, softDeleteQuote, restoreQuote, permanentDeleteQuote, fetchUsers, fetchClients } from './supabase.js'
+import { LayoutDashboard, FilePlus, Kanban, List, Briefcase, Archive as ArchiveIcon, Trash2, Users, CheckSquare, Menu, X, ChevronLeft, Funnel } from 'lucide-react'
+import { fetchQuotes, upsertQuote, softDeleteQuote, restoreQuote, permanentDeleteQuote, fetchUsers, fetchClients, convertLead } from './supabase.js'
 import { uid, qNumber, isOverdue, CHECKLISTS } from './lib.js'
 import Dashboard      from './views/Dashboard.jsx'
 import QuoteForm      from './views/QuoteForm.jsx'
@@ -15,6 +15,7 @@ import QuoteDetail    from './views/QuoteDetail.jsx'
 import Login          from './components/Login.jsx'
 import ClientsView    from './views/ClientsView.jsx'
 import ReportsView    from './views/ReportsView.jsx'
+import LeadsView      from './views/LeadsView.jsx'
 
 const ADMIN_NAV = [
   { key:'dashboard',   label:'Dashboard',   icon:LayoutDashboard, group:'main'    },
@@ -26,6 +27,7 @@ const ADMIN_NAV = [
   { key:'trash',       label:'Trash',       icon:Trash2,          group:'records' },
   { key:'my-tasks',    label:'My Tasks',    icon:CheckSquare,     group:'admin'   },
   { key:'users',       label:'Users',       icon:Users,           group:'admin'   },
+  { key:'leads',       label:'Leads',       icon:Funnel,          group:'crm'     },
   { key:'clients',     label:'Clients',     icon:Users,           group:'crm'     },
   { key:'reports',     label:'Reports',     icon:LayoutDashboard, group:'crm'     },
 ]
@@ -45,6 +47,7 @@ const TITLES = {
   'quote-detail':['Quote Detail',    'Full quote view'],
   'clients':     ['Clients',         'Client contact database'],
   'reports':     ['Reports',         'Revenue & pipeline analytics'],
+  'leads':       ['Leads',           'Initial leads before quotation — track source & owner'],
 }
 
 export default function App() {
@@ -156,6 +159,21 @@ export default function App() {
   const detailQuote   = quotes.find(q=>q.id===detailId)||null
   const [title, sub]  = TITLES[view||'dashboard']||['TaxitWorld','']
   const NAV           = isAdmin ? ADMIN_NAV : STAFF_NAV
+
+  // Convert a lead into a pre-filled new quote
+  const convertLeadToQuote = (lead) => {
+    const prefilled = {
+      clientName: lead.name || lead.company || '',
+      phone:      lead.phone || '',
+      email:      lead.email || '',
+      _fromLead:  lead.id,
+    }
+    setEditing(null)
+    setView('new-quote')
+    // Store lead prefill in sessionStorage so QuoteForm can pick it up
+    sessionStorage.setItem('tw_lead_prefill', JSON.stringify(prefilled))
+    setSideOpen(false)
+  }
 
   if (!currentUser) return <Login onLogin={handleLogin}/>
 
@@ -352,6 +370,7 @@ export default function App() {
           {view==='my-tasks'     && <MyTasks         quotes={activeQuotes} currentUser={currentUser} onUpdate={updateQuote} onFinish={id=>{ const q=activeQuotes.find(x=>x.id===id); if(q) updateQuote({...q,stage:'finished'}) }}/>}
           {view==='clients'     && <ClientsView onRefresh={refreshClients}/>}
           {view==='reports'     && <ReportsView quotes={quotes.filter(q=>!q.deletedAt)}/>}
+          {view==='leads'       && <LeadsView users={users} onConvertToQuote={convertLeadToQuote}/>}
           {view==='quote-detail' && detailQuote && (
             <QuoteDetail q={detailQuote} users={users} currentUser={currentUser}
               onUpdate={updateQuote} onEdit={editQuote} onDelete={deleteQuote} onBack={()=>goto('quotes-list')}/>
