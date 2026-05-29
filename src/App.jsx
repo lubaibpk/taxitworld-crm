@@ -20,7 +20,6 @@ import LeadsView      from './views/LeadsView.jsx'
 const ADMIN_NAV = [
   { key:'dashboard',   label:'Dashboard',   icon:LayoutDashboard, group:'main'    },
   { key:'leads',       label:'Leads',       icon:Funnel,          group:'main'    },
-  { key:'new-quote',   label:'New Quote',   icon:FilePlus,        group:'main'    },
   { key:'pipeline',    label:'Pipeline',    icon:Kanban,          group:'main'    },
   { key:'quotes-list', label:'All Quotes',  icon:List,            group:'records' },
   { key:'jobs',        label:'Active Jobs', icon:Briefcase,       group:'records' },
