@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LayoutDashboard, FilePlus, Kanban, List, Briefcase, Archive as ArchiveIcon, Trash2, Users, CheckSquare, Menu, X, ChevronLeft } from 'lucide-react'
-import { fetchQuotes, upsertQuote, softDeleteQuote, restoreQuote, permanentDeleteQuote, fetchUsers } from './supabase.js'
+import { fetchQuotes, upsertQuote, softDeleteQuote, restoreQuote, permanentDeleteQuote, fetchUsers, fetchClients } from './supabase.js'
 import { uid, qNumber, isOverdue, CHECKLISTS } from './lib.js'
 import Dashboard      from './views/Dashboard.jsx'
 import QuoteForm      from './views/QuoteForm.jsx'
@@ -13,6 +13,8 @@ import MyTasks        from './views/MyTasks.jsx'
 import UserManagement from './views/UserManagement.jsx'
 import QuoteDetail    from './views/QuoteDetail.jsx'
 import Login          from './components/Login.jsx'
+import ClientsView    from './views/ClientsView.jsx'
+import ReportsView    from './views/ReportsView.jsx'
 
 const ADMIN_NAV = [
   { key:'dashboard',   label:'Dashboard',   icon:LayoutDashboard, group:'main'    },
@@ -39,6 +41,8 @@ const TITLES = {
   'users':       ['User Management', 'Manage team members and access'],
   'my-tasks':    ['My Tasks',        'Jobs assigned to you'],
   'quote-detail':['Quote Detail',    'Full quote view'],
+  'clients':     ['Clients',         'Client contact database'],
+  'reports':     ['Reports',         'Revenue & pipeline analytics'],
 }
 
 export default function App() {
@@ -47,6 +51,7 @@ export default function App() {
   })
   const [quotes,      setQuotes]      = useState([])
   const [users,       setUsers]       = useState([])
+  const [clients,     setClients]     = useState([])
   const [loading,     setLoading]     = useState(false)
   const [view,        setView]        = useState(() => {
     try { const u = JSON.parse(sessionStorage.getItem('tw_user')); return u ? (u.role==='admin'?'dashboard':'my-tasks') : null } catch { return null }
@@ -63,8 +68,8 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return
     setLoading(true)
-    Promise.all([fetchQuotes(), fetchUsers()])
-      .then(([q, u]) => { setQuotes(q); setUsers(u); setLoading(false) })
+    Promise.all([fetchQuotes(), fetchUsers(), fetchClients()])
+      .then(([q, u, c]) => { setQuotes(q); setUsers(u); setClients(c); setLoading(false) })
       .catch(e => { setErr(e.message); setLoading(false) })
   }, [currentUser?.id])
 
@@ -130,6 +135,7 @@ export default function App() {
   }, [])
 
   const refreshUsers = async () => { const u=await fetchUsers(); setUsers(u) }
+  const refreshClients = async () => { const c=await fetchClients(); setClients(c) }
 
   const goto = (v) => {
     setView(v)
@@ -334,7 +340,7 @@ export default function App() {
         {/* Page content */}
         <div className="flex-1 p-4 md:p-6 lg:p-8">
           {view==='dashboard'    && <Dashboard      quotes={activeQuotes} onOpen={openDetail} onNew={()=>goto('quotes-list')}/>}
-          {view==='new-quote'    && <QuoteForm       initial={editing} qNum={editing?.quoteNumber||qNumber(activeQuotes.length)} onSave={saveQuote} onCancel={editing?()=>goto('quotes-list'):null}/>}
+          {view==='new-quote'    && <QuoteForm       initial={editing} qNum={editing?.quoteNumber||qNumber(activeQuotes.length)} onSave={saveQuote} onCancel={editing?()=>goto('quotes-list'):null} clients={clients} onClientAdded={refreshClients}/>}
           {view==='pipeline'     && <Pipeline        quotes={activeQuotes} onOpen={openDetail}/>}
           {view==='quotes-list'  && <QuotesList      quotes={activeQuotes} onOpen={openDetail} onDelete={deleteQuote} onNew={()=>goto('new-quote')}/>}
           {view==='jobs'         && <Jobs            quotes={activeQuotes} onUpdate={updateQuote} onFinish={id=>{ const q=activeQuotes.find(x=>x.id===id); if(q) updateQuote({...q,stage:'finished'}) }}/>}
@@ -342,6 +348,8 @@ export default function App() {
           {view==='trash'        && <Trash           quotes={quotes} onRestore={handleRestore} onPermanentDelete={handlePermanentDelete}/>}
           {view==='users'        && <UserManagement  users={users} onRefresh={refreshUsers} currentUser={currentUser}/>}
           {view==='my-tasks'     && <MyTasks         quotes={activeQuotes} currentUser={currentUser} onUpdate={updateQuote} onFinish={id=>{ const q=activeQuotes.find(x=>x.id===id); if(q) updateQuote({...q,stage:'finished'}) }}/>}
+          {view==='clients'     && <ClientsView onRefresh={refreshClients}/>}
+          {view==='reports'     && <ReportsView quotes={quotes.filter(q=>!q.deletedAt)}/>}
           {view==='quote-detail' && detailQuote && (
             <QuoteDetail q={detailQuote} users={users} currentUser={currentUser}
               onUpdate={updateQuote} onEdit={editQuote} onDelete={deleteQuote} onBack={()=>goto('quotes-list')}/>

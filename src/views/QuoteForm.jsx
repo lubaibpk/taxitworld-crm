@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Plus, Trash2, Printer, Save } from 'lucide-react'
+import { Plus, Trash2, Printer, Save, ChevronDown, UserPlus, X } from 'lucide-react'
 import { MISA_DEFAULT_ITEMS, fmt, today, calcSubtotal, calcVAT, calcTotal, VAT_RATE, HR_SERVICE_GROUPS } from '../lib.js'
 import Preview from '../components/Preview.jsx'
 import { printQuote } from '../components/PrintManager.jsx'
+import { upsertClient } from '../supabase.js'
 
 const ic  = 'w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all bg-white'
 const lbl = 'block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5'
@@ -303,7 +304,128 @@ function GenericFields({ d, set }) {
 }
 
 /* ── Main Form ────────────────────────────────────────────── */
-export default function QuoteForm({ initial, qNum, onSave, onCancel }) {
+// ── Add Client Mini-Modal ─────────────────────────────────────
+function AddClientModal({ onSave, onClose }) {
+  const [f, setF] = useState({ name:'', company:'', email:'', phone:'', whatsapp:'', nationality:'', city:'Al Khobar', country:'Saudi Arabia', category:'prospect', cr_number:'', vat_number:'', notes:'' })
+  const [saving, setSaving] = useState(false)
+  const set = k => e => setF(p => ({ ...p, [k]: e.target.value }))
+  const ic2 = 'w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all bg-white'
+  const lbl2 = 'block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1'
+
+  const save = async () => {
+    if (!f.name.trim()) return alert('Name is required')
+    setSaving(true)
+    try { const saved = await upsertClient(f); onSave(saved) }
+    catch(e) { alert('Failed: ' + e.message) }
+    setSaving(false)
+  }
+  const fi = (label, key, type='text') => (
+    <div>
+      <label className={lbl2}>{label}</label>
+      <input type={type} value={f[key]||''} onChange={set(key)} className={ic2}/>
+    </div>
+  )
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <span className="font-bold text-sm">Add New Client</span>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1"><X size={16}/></button>
+        </div>
+        <div className="p-5 grid grid-cols-2 gap-3">
+          {fi('Full Name *','name')}
+          {fi('Company','company')}
+          {fi('Email','email','email')}
+          {fi('Phone','phone','tel')}
+          {fi('WhatsApp','whatsapp','tel')}
+          {fi('Nationality','nationality')}
+          {fi('CR Number','cr_number')}
+          {fi('VAT Number','vat_number')}
+          {fi('City','city')}
+          <div>
+            <label className={lbl2}>Category</label>
+            <select value={f.category} onChange={set('category')} className={ic2}>
+              {['prospect','active','vip','inactive'].map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className={lbl2}>Notes</label>
+            <textarea value={f.notes||''} onChange={set('notes')} rows={2} className={ic2+" resize-none"}/>
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end px-5 pb-5">
+          <button onClick={onClose} className="px-4 py-2 text-sm border border-slate-200 rounded-xl hover:bg-slate-50">Cancel</button>
+          <button onClick={save} disabled={saving} className="px-4 py-2 text-sm text-white rounded-xl hover:opacity-90 disabled:opacity-60" style={{background:'#1A2B6B'}}>
+            {saving ? 'Saving…' : 'Save & select'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Client Selector ───────────────────────────────────────────
+function ClientSelector({ value, clients, onChange, onAddNew }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const selected = clients.find(c => c.id === value)
+  const ic2 = 'w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all bg-white'
+
+  const filtered = clients.filter(c => {
+    const s = search.toLowerCase()
+    return !s || c.name?.toLowerCase().includes(s) || c.company?.toLowerCase().includes(s)
+  })
+
+  return (
+    <div className="col-span-2 relative">
+      <div className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Select Saved Client</div>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setOpen(o => !o)}
+          className="flex-1 flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white hover:border-brand transition-colors text-left focus:outline-none focus:ring-2 focus:ring-brand/10">
+          <span className={selected ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
+            {selected ? `${selected.name}${selected.company ? '  —  ' + selected.company : ''}` : 'Choose existing client…'}
+          </span>
+          <ChevronDown size={14} className="text-slate-400 flex-shrink-0 ml-2"/>
+        </button>
+        <button type="button" onClick={onAddNew}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border-2 border-dashed hover:bg-blue-50 transition-colors flex-shrink-0"
+          style={{borderColor:'#1A2B6B', color:'#1A2B6B'}} title="Add new client">
+          <UserPlus size={13}/> New
+        </button>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => { setOpen(false); setSearch('') }}/>
+          <div className="absolute top-full left-0 right-14 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-40 overflow-hidden">
+            <div className="p-2 border-b border-slate-100">
+              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search clients…"
+                className={ic2 + " !py-1.5"}/>
+            </div>
+            <div className="max-h-52 overflow-y-auto">
+              {value && (
+                <button onClick={() => { onChange(null, null); setOpen(false); setSearch('') }}
+                  className="w-full text-left px-4 py-2 text-xs text-slate-400 hover:bg-slate-50">
+                  — Clear selection
+                </button>
+              )}
+              {filtered.map(c => (
+                <button key={c.id} onClick={() => { onChange(c.id, c); setOpen(false); setSearch('') }}
+                  className={`w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors ${value===c.id ? 'bg-blue-50' : ''}`}>
+                  <div className="text-sm font-semibold text-slate-800">{c.name}</div>
+                  {(c.company || c.phone) && <div className="text-xs text-slate-400 mt-0.5">{[c.company,c.phone].filter(Boolean).join(' · ')}</div>}
+                </button>
+              ))}
+              {filtered.length === 0 && <div className="px-4 py-4 text-xs text-slate-400 text-center">No clients found</div>}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [], onClientAdded }) {
   const [d, setD] = useState(() => ({
     clientName:'', email:'', phone:'', date:today(), validUntil:'',
     type:'misa', paymentTerms:'50% Initial payment, 25% after MISA, 25% after CR', notes:'',
@@ -327,7 +449,21 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel }) {
     printQuote(d, qNum)
   }
 
+
+  const handleClientSelect = (clientId, client) => {
+    if (!clientId || !client) { setD(p => ({ ...p, clientId: null })); return }
+    setD(p => ({ ...p, clientId: client.id, clientName: client.name, email: client.email || p.email, phone: client.phone || p.phone }))
+  }
+
+  const handleNewClientSaved = (savedClient) => {
+    setAddingClient(false)
+    setD(p => ({ ...p, clientId: savedClient.id, clientName: savedClient.name, email: savedClient.email || p.email, phone: savedClient.phone || p.phone }))
+    if (onClientAdded) onClientAdded()
+  }
+
   return (
+    <>
+    {addingClient && <AddClientModal onSave={handleNewClientSaved} onClose={() => setAddingClient(false)}/>}
     <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1fr_380px]">
 
       {/* ── LEFT: form ── */}
@@ -340,6 +476,7 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel }) {
             <span className="font-mono text-xs font-bold text-brand">{qNum}</span>
           </div>
           <div className="p-5 grid grid-cols-2 gap-4">
+            <ClientSelector value={d.clientId} clients={clients} onChange={handleClientSelect} onAddNew={() => setAddingClient(true)}/>
             <div className="col-span-2 sm:col-span-1">
               <label className={lbl}>Client Name *</label>
               <input className={ic} placeholder="e.g. Al-Rashid Trading Co." value={d.clientName} onChange={e=>setD({...d,clientName:e.target.value})}/>
@@ -453,5 +590,6 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel }) {
       </div>
 
     </div>
+    </>
   )
 }

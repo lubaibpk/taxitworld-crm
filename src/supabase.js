@@ -7,7 +7,7 @@ export const supabase = createClient(
 
 // ── Quote row mappers ─────────────────────────────────────────
 const fromDb = r => ({
-  id: r.id, quoteNumber: r.quote_number, clientName: r.client_name,
+  id: r.id, quoteNumber: r.quote_number, clientName: r.client_name, clientId: r.client_id ?? null,
   email: r.email, phone: r.phone, date: r.date, validUntil: r.valid_until,
   paymentTerms: r.payment_terms, notes: r.notes, type: r.type, stage: r.stage,
   followUpDate: r.follow_up_date,
@@ -32,7 +32,7 @@ const fromDb = r => ({
 })
 
 const toDb = q => ({
-  id: q.id, quote_number: q.quoteNumber, client_name: q.clientName,
+  id: q.id, quote_number: q.quoteNumber, client_name: q.clientName, client_id: q.clientId ?? null,
   email: q.email??null, phone: q.phone??null, date: q.date??null,
   valid_until: q.validUntil??null, payment_terms: q.paymentTerms??null,
   notes: q.notes??null, type: q.type, stage: q.stage,
@@ -122,4 +122,28 @@ export async function loginUser(username, password) {
     .from('crm_users').select('*').eq('username', username).eq('password', password).single()
   if (error) return null
   return data
+}
+
+
+// ── Client helpers ────────────────────────────────────────────
+export async function fetchClients() {
+  const { data, error } = await supabase
+    .from('crm_clients').select('*').is('deleted_at', null).order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function upsertClient(c) {
+  const payload = { ...c, updated_at: new Date().toISOString() }
+  if (!payload.id) delete payload.id
+  const { data, error } = await supabase
+    .from('crm_clients').upsert(payload, { onConflict: 'id' }).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function archiveClient(id) {
+  const { error } = await supabase
+    .from('crm_clients').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
 }

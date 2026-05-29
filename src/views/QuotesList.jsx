@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, UserCheck } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import { fmt, calcTotal, isOverdue } from '../lib.js'
 
@@ -29,7 +29,12 @@ export default function QuotesList({ quotes, onOpen, onDelete, onNew }) {
               : sorted.map(q=>(
                 <tr key={q.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
                   <td className="p-3.5 font-mono text-xs font-semibold text-brand">{q.quoteNumber}</td>
-                  <td className="p-3.5 font-semibold text-sm">{q.clientName}</td>
+                  <td className="p-3.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-sm">{q.clientName}</span>
+                      {q.clientId && <span title="Linked to client record" className="text-emerald-500"><UserCheck size={12}/></span>}
+                    </div>
+                  </td>
                   <td className="p-3.5 text-xs capitalize text-slate-500">{q.type}</td>
                   <td className="p-3.5 text-sm font-bold">{fmt(calcTotal(q))}</td>
                   <td className="p-3.5"><Badge stage={q.stage} overdue={isOverdue(q)}/></td>
