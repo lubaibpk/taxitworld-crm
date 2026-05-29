@@ -26,6 +26,8 @@ const ADMIN_NAV = [
   { key:'trash',       label:'Trash',       icon:Trash2,          group:'records' },
   { key:'my-tasks',    label:'My Tasks',    icon:CheckSquare,     group:'admin'   },
   { key:'users',       label:'Users',       icon:Users,           group:'admin'   },
+  { key:'clients',     label:'Clients',     icon:Users,           group:'crm'     },
+  { key:'reports',     label:'Reports',     icon:LayoutDashboard, group:'crm'     },
 ]
 const STAFF_NAV = [
   { key:'my-tasks', label:'My Tasks', icon:CheckSquare, group:'main' },
@@ -203,7 +205,7 @@ export default function App() {
 
       {/* Nav */}
       <nav className="flex-1 py-3 px-2 overflow-y-auto">
-        {['main','records','admin'].map(group => {
+        {['main','records','crm','admin'].map(group => {
           const items = NAV.filter(n=>n.group===group)
           if (!items.length) return null
           return (

@@ -438,6 +438,7 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [
     ...initial,
   }))
   const [busy, setBusy] = useState(false)
+  const [addingClient, setAddingClient] = useState(false)
 
   const handleSave = async (andPreview=false) => {
     if (!d.clientName.trim()) { alert('Please enter a client name.'); return }
