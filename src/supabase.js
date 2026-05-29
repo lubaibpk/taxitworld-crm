@@ -160,7 +160,9 @@ export async function fetchLeads() {
 }
 
 export async function upsertLead(l) {
-  const payload = { ...l, updated_at: new Date().toISOString() }
+  // _clientId is a local UI flag only — never send to DB
+  const { _clientId, ...rest } = l
+  const payload = { ...rest, updated_at: new Date().toISOString() }
   if (!payload.id) delete payload.id
   const { data, error } = await supabase
     .from('crm_leads').upsert(payload, { onConflict: 'id' }).select().single()
