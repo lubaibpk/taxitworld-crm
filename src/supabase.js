@@ -168,6 +168,13 @@ export async function upsertLead(l) {
   return data
 }
 
+export async function fetchLeadById(id) {
+  const { data, error } = await supabase
+    .from('crm_leads').select('*').eq('id', id).single()
+  if (error) throw error
+  return data
+}
+
 export async function deleteLead(id) {
   const { error } = await supabase
     .from('crm_leads').update({ deleted_at: new Date().toISOString() }).eq('id', id)

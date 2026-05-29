@@ -290,6 +290,7 @@ export default function QuoteDetail({ q, users, currentUser, onUpdate, onEdit, o
             </p>
             <div className="space-y-0">
               {[...(q.stageLog || [])].reverse().map((entry, i, arr) => {
+                const isLeadEvent = !!entry._fromLead
                 const STAGE_COLORS = {
                   draft:      { bg:'#f1f5f9', color:'#475569', dot:'#94a3b8' },
                   sent:       { bg:'#dbeafe', color:'#1d4ed8', dot:'#3b82f6' },
@@ -298,6 +299,12 @@ export default function QuoteDetail({ q, users, currentUser, onUpdate, onEdit, o
                   inprogress: { bg:'#fef3c7', color:'#92400e', dot:'#f59e0b' },
                   finished:   { bg:'#ede9fe', color:'#5b21b6', dot:'#8b5cf6' },
                   paid:       { bg:'#dcfce7', color:'#14532d', dot:'#22c55e' },
+                  // lead-specific stages
+                  lead:       { bg:'#f0fdf4', color:'#166534', dot:'#22c55e' },
+                  new:        { bg:'#dbeafe', color:'#1d4ed8', dot:'#3b82f6' },
+                  contacted:  { bg:'#fef3c7', color:'#92400e', dot:'#f59e0b' },
+                  qualified:  { bg:'#ede9fe', color:'#5b21b6', dot:'#8b5cf6' },
+                  converted:  { bg:'#d1fae5', color:'#065f46', dot:'#10b981' },
                 }
                 const c = STAGE_COLORS[entry.stage] || STAGE_COLORS.draft
                 const d = new Date(entry.timestamp)
@@ -313,15 +320,18 @@ export default function QuoteDetail({ q, users, currentUser, onUpdate, onEdit, o
                       {!isLast && <div className="w-0.5 flex-1 mt-1 mb-0" style={{background:'#e2e8f0', minHeight:24}}/>}
                     </div>
                     {/* Content */}
-                    <div className={`pb-4 flex-1 min-w-0 ${isLast ? '' : ''}`}>
+                    <div className="pb-4 flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {isLeadEvent && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-600 uppercase tracking-wide">Lead</span>
+                          )}
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold"
                             style={{background:c.bg, color:c.color}}>
                             {entry.label}
                           </span>
-                          {entry.fromStage && (
-                            <span className="text-[10px] text-slate-400 ml-1.5 flex-inline items-center gap-1">
+                          {entry.fromStage && entry.fromStage !== 'lead' && (
+                            <span className="text-[10px] text-slate-400 flex items-center gap-1">
                               from <span className="font-medium text-slate-500 capitalize">{entry.fromStage.replace('inprogress','In Progress')}</span>
                             </span>
                           )}
@@ -329,7 +339,7 @@ export default function QuoteDetail({ q, users, currentUser, onUpdate, onEdit, o
                       </div>
                       <div className="flex items-center gap-2 mt-1.5">
                         <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0"
-                          style={{background:'#1A2B6B'}}>
+                          style={{background: isLeadEvent ? '#8b5cf6' : '#1A2B6B'}}>
                           {(entry.userName||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
                         </div>
                         <span className="text-xs font-semibold text-slate-600">{entry.userName}</span>

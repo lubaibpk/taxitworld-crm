@@ -163,6 +163,18 @@ export default function App() {
   const convertLeadToQuote = useCallback(async (lead) => {
     try {
       const newId = uid()
+      // Carry over lead activity log as the opening entries of the quote timeline
+      const leadEvents = (lead.activity_log || []).map(e => ({ ...e, _fromLead: true }))
+      const conversionEntry = {
+        id: Date.now(),
+        stage: 'draft',
+        label: 'Converted from Lead',
+        fromStage: 'lead',
+        userId: '', userName: 'System',
+        userRole: '',
+        timestamp: new Date().toISOString(),
+        _fromLead: true,
+      }
       const q = {
         id:           newId,
         quoteNumber:  qNumber(quotes.length),
@@ -182,6 +194,7 @@ export default function App() {
         lineItems:    [{ id: 1, desc: '', qty: 1, price: 0 }],
         misaItems:    null,
         hrServices:   [],
+        stageLog:     [...leadEvents, conversionEntry],
         _fromLead:    lead.id,
       }
       const saved = await upsertQuote(q)
@@ -388,7 +401,7 @@ export default function App() {
           {view==='my-tasks'     && <MyTasks         quotes={activeQuotes} currentUser={currentUser} onUpdate={updateQuote} onFinish={id=>{ const q=activeQuotes.find(x=>x.id===id); if(q) updateQuote({...q,stage:'finished'}) }}/>}
           {view==='clients'     && <ClientsView onRefresh={refreshClients}/>}
           {view==='reports'     && <ReportsView quotes={quotes.filter(q=>!q.deletedAt)}/>}
-          {view==='leads'       && <LeadsView users={users} onConvertToQuote={convertLeadToQuote} onClientSaved={refreshClients}/>}
+          {view==='leads'       && <LeadsView users={users} clients={clients} onConvertToQuote={convertLeadToQuote} onClientSaved={refreshClients}/>}
           {view==='quote-detail' && detailQuote && (
             <QuoteDetail q={detailQuote} users={users} currentUser={currentUser}
               onUpdate={updateQuote} onEdit={editQuote} onDelete={deleteQuote} onBack={()=>goto('quotes-list')}/>
