@@ -155,8 +155,9 @@ function ResetPasswordModal({ user, onSave, onClose }) {
 
 // ── Main ──────────────────────────────────────────────────────
 export default function UserManagement({ users, onRefresh, currentUser, isSuperAdmin }) {
-  const [formUser,  setFormUser]  = useState(null)   // null = closed, {} = new, {...} = edit
-  const [resetUser, setResetUser] = useState(null)
+  const [formUser,   setFormUser]   = useState(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [resetUser,  setResetUser]  = useState(null)
   const [toast,     setToast]     = useState(null)
 
   const flash = (msg, ok = true) => {
@@ -181,14 +182,14 @@ export default function UserManagement({ users, onRefresh, currentUser, isSuperA
   const handleCreate = async (d) => {
     await createUser({ name: d.name, username: d.username, password: d.password, role: d.role })
     await onRefresh()
-    setFormUser(null)
+    setFormUser(null); setIsCreating(false)
     flash('User created!')
   }
 
   const handleUpdate = async (d) => {
     await updateUser(d.id, { name: d.name, username: d.username, password: d.password, role: d.role })
     await onRefresh()
-    setFormUser(null)
+    setFormUser(null); setIsCreating(false)
     flash('User updated!')
   }
 
@@ -230,7 +231,7 @@ export default function UserManagement({ users, onRefresh, currentUser, isSuperA
             <p className="text-[11px] text-slate-400">{users.length} users · Superadmin access</p>
           </div>
         </div>
-        <button onClick={() => setFormUser({})}
+        <button onClick={() => { setIsCreating(true); setFormUser({}) }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm hover:shadow-md transition-all"
           style={{background:'#1A2B6B'}}>
           <Plus size={14}/> Add User
@@ -274,7 +275,7 @@ export default function UserManagement({ users, onRefresh, currentUser, isSuperA
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setFormUser(u)}
+                      <button onClick={() => { setIsCreating(false); setFormUser(u) }}
                         className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
                         <Edit2 size={11}/> Edit
                       </button>
@@ -300,9 +301,9 @@ export default function UserManagement({ users, onRefresh, currentUser, isSuperA
       {/* Modals */}
       {formUser !== null && (
         <UserForm
-          initial={formUser?.id ? formUser : undefined}
-          onSave={formUser?.id ? handleUpdate : handleCreate}
-          onCancel={() => setFormUser(null)}
+          initial={isCreating ? undefined : formUser}
+          onSave={isCreating ? handleCreate : handleUpdate}
+          onCancel={() => { setFormUser(null); setIsCreating(false) }}
         />
       )}
 
