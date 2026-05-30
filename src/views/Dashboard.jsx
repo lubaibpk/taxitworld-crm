@@ -38,17 +38,35 @@ function PipelineBar({ quotes }) {
 
 // ── Lead funnel widget ─────────────────────────────────────────
 function LeadFunnel({ leads, onLeads }) {
-  const statuses = [
-    { key:'new',       label:'New',       color:'#3b82f6', bg:'#eff6ff' },
-    { key:'contacted', label:'Contacted', color:'#f59e0b', bg:'#fffbeb' },
-    { key:'qualified', label:'Qualified', color:'#8b5cf6', bg:'#f5f3ff' },
-    { key:'converted', label:'Converted', color:'#10b981', bg:'#ecfdf5' },
-    { key:'lost',      label:'Lost',      color:'#ef4444', bg:'#fef2f2' },
+  const stages = [
+    { key:'new',       label:'New',       color:'#3b82f6', bg:'#eff6ff', light:'#dbeafe', icon:'🔵' },
+    { key:'contacted', label:'Contacted', color:'#f59e0b', bg:'#fffbeb', light:'#fde68a', icon:'🟡' },
+    { key:'qualified', label:'Qualified', color:'#8b5cf6', bg:'#f5f3ff', light:'#ddd6fe', icon:'🟣' },
+    { key:'converted', label:'Converted', color:'#10b981', bg:'#ecfdf5', light:'#a7f3d0', icon:'🟢' },
+    { key:'lost',      label:'Lost',      color:'#ef4444', bg:'#fef2f2', light:'#fecaca', icon:'🔴' },
   ]
-  const active = leads.filter(l => !['converted','lost'].includes(l.status))
+
+  const SOURCE_LABELS = {
+    whatsapp:'WhatsApp', referral:'Referral', instagram:'Instagram',
+    linkedin:'LinkedIn', website:'Website', walk_in:'Walk-in',
+    cold_call:'Cold Call', email:'Email', existing:'Existing', other:'Other',
+  }
+
+  const total      = leads.length || 1
+  const active     = leads.filter(l => !['converted','lost'].includes(l.status))
+  const converted  = leads.filter(l => l.status === 'converted').length
+  const convRate   = leads.length > 0 ? Math.round((converted / leads.length) * 100) : 0
+  const maxActive  = Math.max(...stages.slice(0,3).map(s => leads.filter(l=>l.status===s.key).length), 1)
+
+  // Source breakdown
+  const sourceCounts = Object.entries(
+    leads.reduce((acc, l) => { acc[l.source] = (acc[l.source]||0)+1; return acc }, {})
+  ).sort((a,b) => b[1]-a[1]).slice(0,4)
+
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm h-full">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg" style={{background:'#f5f3ff'}}>
             <Funnel size={14} style={{color:'#8b5cf6'}}/>
@@ -56,55 +74,102 @@ function LeadFunnel({ leads, onLeads }) {
           <span className="font-bold text-sm text-slate-700">Lead Pipeline</span>
         </div>
         <button onClick={onLeads} className="text-[11px] font-bold hover:underline" style={{color:BRAND}}>
-          View All →
+          Manage Leads →
         </button>
       </div>
 
       {leads.length === 0 ? (
-        <div className="py-6 text-center">
-          <p className="text-xs text-slate-400">No leads yet</p>
-          <button onClick={onLeads} className="mt-2 text-xs font-bold text-brand underline">Add first lead</button>
+        <div className="flex-1 flex flex-col items-center justify-center py-10">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{background:'#f5f3ff'}}>
+            <Funnel size={20} style={{color:'#c4b5fd'}}/>
+          </div>
+          <p className="text-sm font-semibold text-slate-400">No leads yet</p>
+          <button onClick={onLeads} className="mt-2 text-xs font-bold underline" style={{color:BRAND}}>Add first lead</button>
         </div>
       ) : (
-        <>
-          {/* Funnel bars */}
-          <div className="space-y-2 mb-4">
-            {statuses.map(s => {
+        <div className="flex-1 flex flex-col p-5 gap-4">
+
+          {/* Stage cards — each shows count + % + mini bar */}
+          <div className="space-y-2">
+            {stages.map(s => {
               const count = leads.filter(l => l.status === s.key).length
-              if (!count) return null
-              const pct = Math.round((count / leads.length) * 100)
+              const pct   = Math.round((count / total) * 100)
+              // funnel width based on stage (active stages narrower as they go down)
+              const isActive = ['new','contacted','qualified'].includes(s.key)
               return (
-                <div key={s.key} className="flex items-center gap-2.5">
-                  <span className="text-[10px] font-bold w-16 shrink-0" style={{color:s.color}}>{s.label}</span>
-                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{background:s.bg}}>
-                    <div className="h-full rounded-lg flex items-center px-2 transition-all"
-                      style={{width:`${Math.max(pct,8)}%`, background:s.color}}>
-                      <span className="text-[9px] font-bold text-white">{count}</span>
+                <div key={s.key} className="flex items-center gap-3 group">
+                  {/* Stage pill */}
+                  <div className="flex items-center gap-1.5 w-24 shrink-0">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{background:s.color}}/>
+                    <span className="text-[11px] font-bold text-slate-600 truncate">{s.label}</span>
+                  </div>
+                  {/* Bar */}
+                  <div className="flex-1 relative h-7 rounded-lg overflow-hidden" style={{background:s.bg}}>
+                    <div className="absolute inset-y-0 left-0 rounded-lg transition-all duration-500 flex items-center"
+                      style={{
+                        width: count > 0 ? `${Math.max(pct, 5)}%` : '0%',
+                        background: `linear-gradient(90deg, ${s.color}cc, ${s.color})`,
+                        minWidth: count > 0 ? 28 : 0,
+                      }}>
+                      {count > 0 && <span className="text-[10px] font-bold text-white px-2">{count}</span>}
                     </div>
+                    {count === 0 && (
+                      <span className="absolute inset-0 flex items-center px-3 text-[10px] text-slate-300 font-semibold">—</span>
+                    )}
+                  </div>
+                  {/* Pct + count detail */}
+                  <div className="w-14 text-right shrink-0">
+                    <span className="text-[12px] font-extrabold" style={{color: count > 0 ? s.color : '#cbd5e1'}}>{pct}%</span>
                   </div>
                 </div>
               )
             })}
           </div>
 
-          {/* Summary row */}
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
-            <div className="text-center">
-              <p className="text-lg font-extrabold" style={{color:BRAND}}>{leads.length}</p>
-              <p className="text-[10px] text-slate-400 font-semibold">Total</p>
+          {/* KPI row */}
+          <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100">
+            <div className="text-center bg-slate-50 rounded-xl py-2.5">
+              <p className="text-xl font-extrabold leading-none" style={{color:BRAND}}>{leads.length}</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">Total</p>
             </div>
-            <div className="text-center">
-              <p className="text-lg font-extrabold text-emerald-600">{active.length}</p>
-              <p className="text-[10px] text-slate-400 font-semibold">Active</p>
+            <div className="text-center bg-blue-50 rounded-xl py-2.5">
+              <p className="text-xl font-extrabold leading-none text-blue-600">{active.length}</p>
+              <p className="text-[9px] font-bold text-blue-400 uppercase tracking-wide mt-1">Active</p>
             </div>
-            <div className="text-center">
-              <p className="text-lg font-extrabold text-emerald-600">
-                {leads.filter(l=>l.status==='converted').length}
+            <div className="text-center bg-emerald-50 rounded-xl py-2.5">
+              <p className="text-xl font-extrabold leading-none text-emerald-600">{converted}</p>
+              <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wide mt-1">Converted</p>
+            </div>
+            <div className="text-center rounded-xl py-2.5" style={{background: convRate >= 50 ? '#ecfdf5' : convRate >= 25 ? '#fffbeb' : '#fef2f2'}}>
+              <p className="text-xl font-extrabold leading-none"
+                style={{color: convRate >= 50 ? '#059669' : convRate >= 25 ? '#d97706' : '#dc2626'}}>
+                {convRate}%
               </p>
-              <p className="text-[10px] text-slate-400 font-semibold">Converted</p>
+              <p className="text-[9px] font-bold uppercase tracking-wide mt-1"
+                style={{color: convRate >= 50 ? '#6ee7b7' : convRate >= 25 ? '#fcd34d' : '#fca5a5'}}>
+                Conv. Rate
+              </p>
             </div>
           </div>
-        </>
+
+          {/* Source breakdown */}
+          {sourceCounts.length > 0 && (
+            <div className="pt-3 border-t border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Top Sources</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {sourceCounts.map(([src, cnt]) => (
+                  <div key={src} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5">
+                    <span className="text-[11px] font-semibold text-slate-600 truncate">
+                      {SOURCE_LABELS[src] || src}
+                    </span>
+                    <span className="text-[11px] font-extrabold ml-2 shrink-0" style={{color:BRAND}}>{cnt}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
       )}
     </div>
   )
