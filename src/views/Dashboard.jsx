@@ -5,33 +5,161 @@ import { fmt, calcTotal, isOverdue } from '../lib.js'
 const BRAND = '#1A2B6B'
 const GOLD  = '#F5C518'
 
-// ── Mini bar chart for pipeline stages ───────────────────────
-function PipelineBar({ quotes }) {
+// ── Rich Quote Pipeline widget ────────────────────────────────
+function QuotePipeline({ quotes, onNew }) {
   const stages = [
-    { key:'draft',      label:'Draft',       color:'#94a3b8' },
-    { key:'sent',       label:'Sent',        color:'#3b82f6' },
-    { key:'won',        label:'Won',         color:'#10b981' },
-    { key:'inprogress', label:'In Progress', color:'#f59e0b' },
-    { key:'finished',   label:'Finished',    color:'#8b5cf6' },
-    { key:'lost',       label:'Lost',        color:'#ef4444' },
+    { key:'draft',      label:'Draft',       color:'#64748b', bg:'#f8fafc', light:'#e2e8f0' },
+    { key:'sent',       label:'Sent',        color:'#3b82f6', bg:'#eff6ff', light:'#bfdbfe' },
+    { key:'won',        label:'Won',         color:'#10b981', bg:'#ecfdf5', light:'#a7f3d0' },
+    { key:'inprogress', label:'In Progress', color:'#f59e0b', bg:'#fffbeb', light:'#fde68a' },
+    { key:'finished',   label:'Finished',    color:'#8b5cf6', bg:'#f5f3ff', light:'#ddd6fe' },
+    { key:'paid',       label:'Paid',        color:'#059669', bg:'#f0fdf4', light:'#bbf7d0' },
+    { key:'lost',       label:'Lost',        color:'#ef4444', bg:'#fef2f2', light:'#fecaca' },
   ]
-  const total = quotes.length || 1
+
+  const total    = quotes.length || 1
+  const revenue  = quotes.filter(q=>q.stage!=='lost').reduce((s,q)=>s+calcTotal(q),0)
+  const wonRev   = quotes.filter(q=>['won','inprogress','finished','paid'].includes(q.stage)).reduce((s,q)=>s+calcTotal(q),0)
+  const lostRev  = quotes.filter(q=>q.stage==='lost').reduce((s,q)=>s+calcTotal(q),0)
+  const wonCount = quotes.filter(q=>['won','inprogress','finished','paid'].includes(q.stage)).length
+  const winRate  = quotes.length > 0 ? Math.round((wonCount / quotes.length) * 100) : 0
+
+  // Quote type breakdown
+  const typeCounts = ['misa','hr','accounts','generic'].map(t => ({
+    label: t==='misa'?'MISA':t==='hr'?'HR':t==='accounts'?'Accounts':'Generic',
+    count: quotes.filter(q=>q.type===t).length,
+    value: quotes.filter(q=>q.type===t).reduce((s,q)=>s+calcTotal(q),0),
+    color: t==='misa'?'#1A2B6B':t==='hr'?'#8b5cf6':t==='accounts'?'#3b82f6':'#64748b',
+  })).filter(t=>t.count>0).sort((a,b)=>b.count-a.count)
+
   return (
-    <div className="space-y-2">
-      {stages.map(s => {
-        const count = quotes.filter(q => q.stage === s.key).length
-        const pct   = Math.round((count / total) * 100)
-        if (!count) return null
-        return (
-          <div key={s.key} className="flex items-center gap-3">
-            <span className="text-[11px] font-semibold text-slate-500 w-20 shrink-0">{s.label}</span>
-            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width:`${pct}%`, background:s.color }}/>
-            </div>
-            <span className="text-[11px] font-bold text-slate-600 w-6 text-right shrink-0">{count}</span>
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg" style={{background:'#eff6ff'}}>
+            <Target size={14} style={{color:BRAND}}/>
           </div>
-        )
-      })}
+          <span className="font-bold text-sm text-slate-700">Quote Pipeline</span>
+        </div>
+        <button onClick={onNew} className="text-[11px] font-bold hover:underline" style={{color:BRAND}}>
+          All Quotes →
+        </button>
+      </div>
+
+      {quotes.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-10">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{background:'#eff6ff'}}>
+            <Target size={20} style={{color:'#93c5fd'}}/>
+          </div>
+          <p className="text-sm font-semibold text-slate-400">No quotes yet</p>
+          <button onClick={onNew} className="mt-2 text-xs font-bold underline" style={{color:BRAND}}>Create first quote</button>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col p-5 gap-4">
+
+          {/* Stage rows */}
+          <div className="space-y-2">
+            {stages.map(s => {
+              const count  = quotes.filter(q => q.stage === s.key).length
+              const val    = quotes.filter(q => q.stage === s.key).reduce((a,q)=>a+calcTotal(q),0)
+              const pct    = Math.round((count / total) * 100)
+              return (
+                <div key={s.key} className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 w-24 shrink-0">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{background:s.color}}/>
+                    <span className="text-[11px] font-bold text-slate-600 truncate">{s.label}</span>
+                  </div>
+                  <div className="flex-1 relative h-7 rounded-lg overflow-hidden" style={{background:s.bg}}>
+                    <div className="absolute inset-y-0 left-0 rounded-lg flex items-center transition-all duration-500"
+                      style={{
+                        width: count > 0 ? `${Math.max(pct,5)}%` : '0%',
+                        background:`linear-gradient(90deg,${s.color}bb,${s.color})`,
+                        minWidth: count > 0 ? 28 : 0,
+                      }}>
+                      {count > 0 && <span className="text-[10px] font-bold text-white px-2">{count}</span>}
+                    </div>
+                    {count === 0 && (
+                      <span className="absolute inset-0 flex items-center px-3 text-[10px] text-slate-300 font-semibold">—</span>
+                    )}
+                  </div>
+                  <div className="w-20 text-right shrink-0">
+                    {count > 0
+                      ? <span className="text-[11px] font-bold text-slate-500">{fmt(val)}</span>
+                      : <span className="text-[10px] text-slate-300">—</span>
+                    }
+                  </div>
+                  <div className="w-8 text-right shrink-0">
+                    <span className="text-[10px] font-semibold" style={{color: count>0 ? s.color : '#e2e8f0'}}>{pct}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* KPI tiles */}
+          <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100">
+            <div className="text-center bg-slate-50 rounded-xl py-2.5 px-1">
+              <p className="text-lg font-extrabold leading-none" style={{color:BRAND}}>{quotes.length}</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">Total</p>
+            </div>
+            <div className="text-center bg-emerald-50 rounded-xl py-2.5 px-1">
+              <p className="text-lg font-extrabold leading-none text-emerald-700">{wonCount}</p>
+              <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wide mt-1">Won</p>
+            </div>
+            <div className="text-center rounded-xl py-2.5 px-1"
+              style={{background: winRate>=50?'#ecfdf5':winRate>=25?'#fffbeb':'#fef2f2'}}>
+              <p className="text-lg font-extrabold leading-none"
+                style={{color: winRate>=50?'#059669':winRate>=25?'#d97706':'#dc2626'}}>{winRate}%</p>
+              <p className="text-[9px] font-bold uppercase tracking-wide mt-1"
+                style={{color: winRate>=50?'#6ee7b7':winRate>=25?'#fcd34d':'#fca5a5'}}>Win Rate</p>
+            </div>
+            <div className="text-center bg-red-50 rounded-xl py-2.5 px-1">
+              <p className="text-lg font-extrabold leading-none text-red-500">
+                {quotes.filter(q=>q.stage==='lost').length}
+              </p>
+              <p className="text-[9px] font-bold text-red-300 uppercase tracking-wide mt-1">Lost</p>
+            </div>
+          </div>
+
+          {/* Revenue summary */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl p-3 text-center" style={{background:'#f0f9ff'}}>
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Pipeline</p>
+              <p className="text-sm font-extrabold leading-tight" style={{color:BRAND}}>{fmt(revenue)}</p>
+            </div>
+            <div className="rounded-xl p-3 text-center bg-emerald-50">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-500 mb-1">Won Value</p>
+              <p className="text-sm font-extrabold leading-tight text-emerald-700">{fmt(wonRev)}</p>
+            </div>
+            <div className="rounded-xl p-3 text-center bg-red-50">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-red-400 mb-1">Lost Value</p>
+              <p className="text-sm font-extrabold leading-tight text-red-600">{fmt(lostRev)}</p>
+            </div>
+          </div>
+
+          {/* Quote type breakdown */}
+          {typeCounts.length > 0 && (
+            <div className="pt-3 border-t border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">By Service Type</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {typeCounts.map(t => (
+                  <div key={t.label} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{background:t.color}}/>
+                      <span className="text-[11px] font-semibold text-slate-600 truncate">{t.label}</span>
+                    </div>
+                    <div className="text-right ml-2 shrink-0">
+                      <span className="text-[11px] font-extrabold" style={{color:t.color}}>{t.count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
     </div>
   )
 }
@@ -318,42 +446,9 @@ export default function Dashboard({ quotes, leads = [], onOpen, onNew, onLeads }
         </div>
       )}
 
-      {/* ── Middle row: pipeline bar + lead funnel ── */}
+      {/* ── Middle row: pipeline + lead funnel ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Pipeline breakdown */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg" style={{background:'#eff6ff'}}>
-                <Target size={14} style={{color:BRAND}}/>
-              </div>
-              <span className="font-bold text-sm text-slate-700">Quote Pipeline</span>
-            </div>
-            <button onClick={onNew} className="text-[11px] font-bold hover:underline" style={{color:BRAND}}>
-              All Quotes →
-            </button>
-          </div>
-          {quotes.length === 0
-            ? <p className="text-xs text-slate-400 py-6 text-center">No quotes yet</p>
-            : <PipelineBar quotes={quotes}/>
-          }
-          {/* Revenue won vs pipeline */}
-          {quotes.length > 0 && (
-            <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-xl p-3 text-center">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">Pipeline</p>
-                <p className="text-base font-extrabold" style={{color:BRAND}}>{fmt(revenue)}</p>
-              </div>
-              <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                <p className="text-[10px] text-emerald-600 uppercase tracking-wide mb-1">Won</p>
-                <p className="text-base font-extrabold text-emerald-700">{fmt(wonRev)}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Lead funnel */}
+        <QuotePipeline quotes={quotes} onNew={onNew}/>
         <LeadFunnel leads={leads} onLeads={onLeads}/>
       </div>
 
