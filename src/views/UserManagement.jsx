@@ -274,19 +274,20 @@ export default function UserManagement({ users, onRefresh, currentUser, isSuperA
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button onClick={() => { setIsCreating(false); setFormUser(u) }}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
-                        <Edit2 size={11}/> Edit
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg text-white hover:opacity-90 transition-all shadow-sm"
+                        style={{background:'#1A2B6B'}}>
+                        <Edit2 size={12}/> Edit
                       </button>
                       <button onClick={() => setResetUser(u)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors">
-                        <Lock size={11}/> Password
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
+                        <Lock size={12}/> Password
                       </button>
                       {u.id !== currentUser.id && u.role !== 'superadmin' && (
                         <button onClick={() => handleDelete(u)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
-                          <Trash2 size={11}/> Delete
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
+                          <Trash2 size={12}/> Delete
                         </button>
                       )}
                     </div>
