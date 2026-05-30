@@ -297,20 +297,44 @@ function QuoteContent({ q, qNum }) {
 
   /* ── ACCOUNTS ── */
   if (q.type === 'accounts') {
-    const rows = [
-      { desc: 'Monthly Bookkeeping',                                                               amt: +q.bookkeepingRate || 0 },
-      { desc: 'Tax Preparation Fee',                                                               amt: +q.taxFee || 0 },
-      { desc: `Audit Support (${q.auditHours || 0} hrs @ SAR ${q.auditRate || 0}/hr)`,            amt: (+q.auditHours || 0) * (+q.auditRate || 0) },
-    ]
+    const packagePrice = +q.bookkeepingRate || 0
+    const services     = q.accountsServices && q.accountsServices.length > 0
+      ? q.accountsServices
+      : null
+    const packageName  = q.accountsPackageName || 'Accounting Services'
+    const packageNote  = q.accountsPackageNote || ''
     return (
       <>
         <DocHeader q={q} qNum={qNum}/>
         <div style={{ padding: '16px 28px 0' }}>
+          {/* Package header */}
+          {q.accountsPackage && (
+            <div style={{ marginBottom: 12, padding: '10px 14px', background: '#f0f7ff', borderRadius: 6, borderLeft: `3px solid ${BRAND}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BRAND }}>{packageName}</div>
+              {packageNote && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{packageNote}</div>}
+            </div>
+          )}
+          {/* Scope note */}
           {q.accountsScope && (
             <div style={{ fontSize: 10, color: '#475569', marginBottom: 12, padding: '8px 12px', background: '#f8fafc', borderRadius: 6, borderLeft: `3px solid ${BRAND}` }}>
               <b>Scope of Work:</b> {q.accountsScope}
             </div>
           )}
+          {/* Services included */}
+          {services && services.length > 0 && (
+            <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fafafa', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Services Included</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 16px' }}>
+                {services.map((s, i) => (
+                  <div key={i} style={{ fontSize: 10, color: '#475569', display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                    <span style={{ color: BRAND, fontWeight: 700, marginTop: 1 }}>•</span>
+                    <span>{s.text || s}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Price table */}
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
               <th style={{ ...th, width: 36, textAlign: 'center' }}>No</th>
@@ -318,13 +342,11 @@ function QuoteContent({ q, qNum }) {
               <th style={{ ...th, width: 130, textAlign: 'right' }}>Amount (SAR)</th>
             </tr></thead>
             <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td style={{ ...td(i), textAlign: 'center' }}>{i + 1}</td>
-                  <td style={td(i)}>{r.desc}</td>
-                  <td style={{ ...td(i), textAlign: 'right', fontWeight: 600 }}>{fmt(r.amt)}</td>
-                </tr>
-              ))}
+              <tr>
+                <td style={{ ...td(0), textAlign: 'center' }}>1</td>
+                <td style={td(0)}>{packageName} — Monthly Fee</td>
+                <td style={{ ...td(0), textAlign: 'right', fontWeight: 600 }}>{fmt(packagePrice)}</td>
+              </tr>
             </tbody>
             <tfoot><VATSummary q={q} subtotal={subtotal} span={2}/></tfoot>
           </table>

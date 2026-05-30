@@ -141,7 +141,7 @@ function AccountsFields({ d, set }) {
       accountsPackageName:  pkg.name,
       accountsPackageNote:  pkg.note,
       accountsServices:     editableServices,
-      bookkeepingRate:      pkg.price,  // maps to calcTotal
+      bookkeepingRate:      +pkg.price,  // maps to calcTotal — always a number
       taxFee:               0,
       auditHours:           0,
       auditRate:            0,
@@ -166,7 +166,7 @@ function AccountsFields({ d, set }) {
     set({ ...d, accountsServices: (d.accountsServices || []).filter(s => s.id !== id) })
   }
 
-  const setPrice = (val) => set({ ...d, bookkeepingRate: val, taxFee: 0, auditHours: 0, auditRate: 0 })
+  const setPrice = (val) => set({ ...d, bookkeepingRate: val === '' ? '' : +val, taxFee: 0, auditHours: 0, auditRate: 0 })
 
   return (
     <div className="space-y-4">
