@@ -141,6 +141,16 @@ export default function QuoteDetail({ q, users, currentUser, onUpdate, onEdit, o
   const pg      = progress(q)
   const isAdmin = currentUser?.role === 'admin'
 
+  // Set document.title → filename when browser saves as PDF
+  const handlePrint = async () => {
+    const safeName = (q.clientName || 'Client').replace(/[^a-zA-Z0-9\s\-]/g, '').trim()
+    const filename  = `${q.quoteNumber} - ${safeName}`
+    const prev      = document.title
+    document.title  = filename
+    await printQuote(q, q.quoteNumber)
+    document.title  = prev
+  }
+
   const STAGE_LABELS = {
     draft:'Reopened as Draft', sent:'Quote Sent', won:'Closed Won',
     lost:'Closed Lost', inprogress:'Job Started', finished:'Job Finished',
@@ -369,7 +379,7 @@ export default function QuoteDetail({ q, users, currentUser, onUpdate, onEdit, o
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-50 transition-colors">
               <Edit3 size={14}/> Edit Quote
             </button>
-            <button onClick={()=>printQuote(q,q.quoteNumber)}
+            <button onClick={handlePrint}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-all"
               style={{background:'#1A2B6B'}}>
               <Printer size={14}/> Print / PDF
@@ -387,7 +397,7 @@ export default function QuoteDetail({ q, users, currentUser, onUpdate, onEdit, o
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
           <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
             <p className="text-xs font-bold text-brand">Quote Preview</p>
-            <button onClick={()=>printQuote(q,q.quoteNumber)}
+            <button onClick={handlePrint}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white hover:opacity-90"
               style={{background:'#1A2B6B'}}>
               <Printer size={11}/> Print
