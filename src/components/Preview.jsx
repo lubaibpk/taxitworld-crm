@@ -5,7 +5,7 @@ const BRAND  = '#1A2B6B'
 const ACCENT = '#F5C518'
 
 // ── Real logo from PNG ────────────────────────────────────────
-function Logo({ height = 52 }) {
+function Logo({ height = 104 }) {
   return (
     <img
       src={LOGO_URI}
@@ -154,7 +154,7 @@ function DocHeader({ q, qNum }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '18px 28px 14px', borderBottom: `3px solid ${BRAND}`,
       }}>
-        <Logo height={56} />
+        <Logo height={112} />
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.7 }}>
             <div style={{ fontWeight: 700, color: BRAND, fontSize: 11, marginBottom: 2 }}>TaxitWorld Business Consultancy</div>
@@ -220,7 +220,7 @@ function DocFooter({ q }) {
         borderTop: `2px solid ${BRAND}`, paddingTop: 10, marginTop: 10,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <Logo height={44} />
+        <Logo height={88} />
         <div style={{ fontSize: 9, color: '#94a3b8', textAlign: 'right' }}>
           <div>www.taxitworld.com</div>
           <div style={{ marginTop: 2 }}>This is a computer generated quotation</div>
