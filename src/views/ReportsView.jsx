@@ -159,7 +159,8 @@ export default function ReportsView({ quotes }) {
   const printReport = () => {
     const portal = document.getElementById('print-portal')
     if (portal && printRef.current) {
-      portal.innerHTML = printRef.current.innerHTML
+      // Use cloneNode instead of innerHTML to avoid any script injection risk
+      portal.replaceChildren(printRef.current.cloneNode(true))
       window.print()
     }
   }

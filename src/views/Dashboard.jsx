@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react'
 import { FileText, TrendingUp, CheckCircle, Bell, AlertTriangle, Funnel, ArrowRight, Users, Zap, Target, Clock } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import { fmt, calcTotal, isOverdue } from '../lib.js'
@@ -6,7 +7,7 @@ const BRAND = '#1A2B6B'
 const GOLD  = '#F5C518'
 
 // ── Rich Quote Pipeline widget ────────────────────────────────
-function QuotePipeline({ quotes, onNew }) {
+const QuotePipeline = memo(function QuotePipeline({ quotes, onNew }) {
   const stages = [
     { key:'draft',      label:'Draft',       color:'#64748b', bg:'#f8fafc', light:'#e2e8f0' },
     { key:'sent',       label:'Sent',        color:'#3b82f6', bg:'#eff6ff', light:'#bfdbfe' },
@@ -162,10 +163,10 @@ function QuotePipeline({ quotes, onNew }) {
       )}
     </div>
   )
-}
+})
 
 // ── Lead funnel widget ─────────────────────────────────────────
-function LeadFunnel({ leads, onLeads }) {
+const LeadFunnel = memo(function LeadFunnel({ leads, onLeads }) {
   const stages = [
     { key:'new',       label:'New',       color:'#3b82f6', bg:'#eff6ff', light:'#dbeafe', icon:'🔵' },
     { key:'contacted', label:'Contacted', color:'#f59e0b', bg:'#fffbeb', light:'#fde68a', icon:'🟡' },
@@ -301,10 +302,10 @@ function LeadFunnel({ leads, onLeads }) {
       )}
     </div>
   )
-}
+})
 
 // ── Recent leads mini-list ─────────────────────────────────────
-function RecentLeads({ leads, onLeads }) {
+const RecentLeads = memo(function RecentLeads({ leads, onLeads }) {
   const STATUS_DOT = {
     new:'bg-blue-400', contacted:'bg-amber-400',
     qualified:'bg-violet-400', converted:'bg-emerald-400', lost:'bg-red-400',
@@ -348,28 +349,27 @@ function RecentLeads({ leads, onLeads }) {
       )}
     </div>
   )
-}
+})
 
 // ── Main Dashboard ─────────────────────────────────────────────
 export default function Dashboard({ quotes, leads = [], onOpen, onNew, onLeads }) {
-  const won       = quotes.filter(q => ['won','inprogress','finished','paid'].includes(q.stage)).length
-  const revenue   = quotes.filter(q => q.stage !== 'lost').reduce((s,q) => s + calcTotal(q), 0)
-  const wonRev    = quotes.filter(q => ['won','inprogress','finished','paid'].includes(q.stage)).reduce((s,q) => s + calcTotal(q), 0)
-  const overdue   = quotes.filter(isOverdue)
-  const inprog    = quotes.filter(q => q.stage === 'inprogress').length
-  const recent    = [...quotes].sort((a,b) => (b.createdAt||0) - (a.createdAt||0)).slice(0, 8)
-  const convRate  = leads.length > 0
+  const won      = useMemo(() => quotes.filter(q => ['won','inprogress','finished','paid'].includes(q.stage)).length, [quotes])
+  const revenue  = useMemo(() => quotes.filter(q => q.stage !== 'lost').reduce((s,q) => s + calcTotal(q), 0), [quotes])
+  const wonRev   = useMemo(() => quotes.filter(q => ['won','inprogress','finished','paid'].includes(q.stage)).reduce((s,q) => s + calcTotal(q), 0), [quotes])
+  const overdue  = useMemo(() => quotes.filter(isOverdue), [quotes])
+  const inprog   = useMemo(() => quotes.filter(q => q.stage === 'inprogress').length, [quotes])
+  const recent   = useMemo(() => [...quotes].sort((a,b) => (b.createdAt||0) - (a.createdAt||0)).slice(0, 8), [quotes])
+  const convRate = useMemo(() => leads.length > 0
     ? Math.round((leads.filter(l=>l.status==='converted').length / leads.length) * 100)
-    : 0
+    : 0, [leads])
+  const activeLeadCount = useMemo(() => leads.filter(l=>!['converted','lost'].includes(l.status)).length, [leads])
 
-  // Top stats
-  const stats = [
-    { label:'Pipeline Value',    value: fmt(revenue),     sub: `${quotes.length} quotes total`,    icon: TrendingUp,   color:'#1A2B6B', bg:'#eff6ff'  },
-    { label:'Revenue Won',       value: fmt(wonRev),      sub: `${won} deals closed`,              icon: CheckCircle,  color:'#059669', bg:'#ecfdf5'  },
-    { label:'Active Leads',      value: leads.filter(l=>!['converted','lost'].includes(l.status)).length,
-                                         sub: `${convRate}% conversion rate`,           icon: Funnel,       color:'#8b5cf6', bg:'#f5f3ff'  },
-    { label:'Jobs In Progress',  value: inprog,           sub: 'active right now',                 icon: Zap,          color:'#f59e0b', bg:'#fffbeb'  },
-  ]
+  const stats = useMemo(() => [
+    { label:'Pipeline Value',   value: fmt(revenue),      sub: `${quotes.length} quotes total`, icon: TrendingUp,  color:'#1A2B6B', bg:'#eff6ff' },
+    { label:'Revenue Won',      value: fmt(wonRev),       sub: `${won} deals closed`,           icon: CheckCircle, color:'#059669', bg:'#ecfdf5' },
+    { label:'Active Leads',     value: activeLeadCount,   sub: `${convRate}% conversion rate`,  icon: Funnel,      color:'#8b5cf6', bg:'#f5f3ff' },
+    { label:'Jobs In Progress', value: inprog,            sub: 'active right now',              icon: Zap,         color:'#f59e0b', bg:'#fffbeb' },
+  ], [revenue, wonRev, won, activeLeadCount, convRate, inprog, quotes.length])
 
   return (
     <div className="space-y-6 anim-fade">
