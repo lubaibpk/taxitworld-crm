@@ -79,19 +79,186 @@ function MisaFields({ d, set }) {
 }
 
 /* ── ACCOUNTS ─────────────────────────────────────────────── */
+const ACCOUNTS_PACKAGES = [
+  {
+    id: 'basic',
+    name: '🔹 Basic Package',
+    subtitle: 'Suitable for small businesses & startups',
+    services: [
+      'Monthly bookkeeping',
+      'Expense & income recording',
+      'Basic financial report',
+      'Email support',
+      'Tele call support',
+      'VAT filing',
+    ],
+    price: 750,
+    note: 'SAR 750 plus VAT / Month',
+  },
+  {
+    id: 'standard',
+    name: '🔹 Standard Package',
+    subtitle: 'Suitable for growing businesses',
+    services: [
+      'Full accounting services',
+      'VAT filing & tax support',
+      'Monthly financial statements',
+      'Payroll support',
+      'Priority support',
+    ],
+    price: 1200,
+    note: 'SAR 1,200 / Month',
+  },
+  {
+    id: 'premium',
+    name: '🔹 Premium Package',
+    subtitle: 'Suitable for established companies',
+    services: [
+      'Complete accounting management',
+      'VAT & corporate tax services',
+      'Audit preparation',
+      'Management reports',
+      'Dedicated accountant support by all time access',
+      'Frequently client meeting & consultation',
+      'FDI survey',
+      'Statistical survey',
+    ],
+    price: 2000,
+    note: 'SAR 2,000 / Month',
+  },
+]
+
 function AccountsFields({ d, set }) {
-  const f = k => ({ value: d[k]||'', onChange: e => set({...d,[k]:e.target.value}) })
+  // Which package is currently selected
+  const selectedPkg = d.accountsPackage || null
+
+  const selectPackage = (pkg) => {
+    // Build editable services list
+    const editableServices = pkg.services.map((s, i) => ({ id: i, text: s }))
+    set({
+      ...d,
+      accountsPackage:      pkg.id,
+      accountsPackageName:  pkg.name,
+      accountsPackageNote:  pkg.note,
+      accountsServices:     editableServices,
+      bookkeepingRate:      pkg.price,  // maps to calcTotal
+      taxFee:               0,
+      auditHours:           0,
+      auditRate:            0,
+      // accountsScope is used by Preview — populate with package summary
+      accountsScope: `${pkg.name} — ${pkg.subtitle}`,
+    })
+  }
+
+  const updateService = (id, text) => {
+    set({
+      ...d,
+      accountsServices: (d.accountsServices || []).map(s => s.id === id ? { ...s, text } : s),
+    })
+  }
+
+  const addService = () => {
+    const services = d.accountsServices || []
+    set({ ...d, accountsServices: [...services, { id: Date.now(), text: '' }] })
+  }
+
+  const removeService = (id) => {
+    set({ ...d, accountsServices: (d.accountsServices || []).filter(s => s.id !== id) })
+  }
+
+  const setPrice = (val) => set({ ...d, bookkeepingRate: val, taxFee: 0, auditHours: 0, auditRate: 0 })
+
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5">
-      <h3 className="font-bold text-sm mb-4 pb-3 border-b border-slate-100">Accounts Work Details</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div><label className={lbl}>Monthly Bookkeeping Rate (SAR)</label><input type="number" className={ic} placeholder="1500" {...f('bookkeepingRate')}/></div>
-        <div><label className={lbl}>Tax Preparation Fee (SAR)</label><input type="number" className={ic} placeholder="2000" {...f('taxFee')}/></div>
-        <div><label className={lbl}>Audit Support Hours</label><input type="number" className={ic} placeholder="10" {...f('auditHours')}/></div>
-        <div><label className={lbl}>Hourly Audit Rate (SAR)</label><input type="number" className={ic} placeholder="250" {...f('auditRate')}/></div>
-        <div className="col-span-2"><label className={lbl}>Scope Description</label>
-          <textarea className={ic} rows={3} placeholder="Describe accounting scope..." {...f('accountsScope')}/></div>
+    <div className="space-y-4">
+
+      {/* Package selector */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {ACCOUNTS_PACKAGES.map(pkg => (
+          <button key={pkg.id} type="button" onClick={() => selectPackage(pkg)}
+            className={`text-left p-4 rounded-2xl border-2 transition-all ${
+              selectedPkg === pkg.id
+                ? 'border-[#1A2B6B] bg-blue-50 shadow-md'
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+            }`}>
+            <p className="font-extrabold text-sm text-slate-800 leading-tight">{pkg.name}</p>
+            <p className="text-[11px] text-slate-500 mt-1 leading-tight">{pkg.subtitle}</p>
+            <p className="text-base font-extrabold mt-3" style={{color:'#1A2B6B'}}>{pkg.note}</p>
+            <ul className="mt-2 space-y-0.5">
+              {pkg.services.slice(0,3).map((s,i) => (
+                <li key={i} className="text-[10px] text-slate-500 flex items-start gap-1">
+                  <span className="text-slate-300 mt-0.5">•</span> {s}
+                </li>
+              ))}
+              {pkg.services.length > 3 && (
+                <li className="text-[10px] text-slate-400 italic">+{pkg.services.length - 3} more…</li>
+              )}
+            </ul>
+            {selectedPkg === pkg.id && (
+              <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-blue-600">
+                <span>✓</span> Selected
+              </div>
+            )}
+          </button>
+        ))}
       </div>
+
+      {/* Editable package details — only show after selection */}
+      {selectedPkg && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-slate-700">
+              {d.accountsPackageName} — Edit Details
+            </h3>
+          </div>
+
+          {/* Price */}
+          <div>
+            <label className={lbl}>Monthly Price (SAR) — excl. VAT</label>
+            <input type="number" className={ic} value={d.bookkeepingRate || ''}
+              onChange={e => setPrice(e.target.value)}
+              placeholder="e.g. 750"/>
+          </div>
+
+          {/* Package note / label */}
+          <div>
+            <label className={lbl}>Price Label</label>
+            <input type="text" className={ic} value={d.accountsPackageNote || ''}
+              onChange={e => set({ ...d, accountsPackageNote: e.target.value })}
+              placeholder="e.g. SAR 750 plus VAT / Month"/>
+          </div>
+
+          {/* Services list — fully editable */}
+          <div>
+            <label className={lbl}>Services Included</label>
+            <div className="space-y-2">
+              {(d.accountsServices || []).map((s, idx) => (
+                <div key={s.id} className="flex items-center gap-2">
+                  <span className="text-slate-300 text-sm shrink-0">•</span>
+                  <input className={ic} value={s.text}
+                    onChange={e => updateService(s.id, e.target.value)}
+                    placeholder={`Service ${idx + 1}`}/>
+                  <button type="button" onClick={() => removeService(s.id)}
+                    className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors">
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={addService}
+              className="mt-2 text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1">
+              + Add service item
+            </button>
+          </div>
+
+          {/* Scope note for quote */}
+          <div>
+            <label className={lbl}>Scope / Notes (appears on quote)</label>
+            <textarea className={ic} rows={2} value={d.accountsScope || ''}
+              onChange={e => set({ ...d, accountsScope: e.target.value })}
+              placeholder="Any additional scope details for the client…"/>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -306,18 +473,18 @@ function GenericFields({ d, set }) {
 /* ── Main Form ────────────────────────────────────────────── */
 // ── Add Client Mini-Modal ─────────────────────────────────────
 function AddClientModal({ onSave, onClose }) {
-  const [f, setF] = useState({ name:'', company:'', email:'', phone:'', whatsapp:'', nationality:'', city:'Al Khobar', country:'Saudi Arabia', category:'prospect', cr_number:'', vat_number:'', notes:'' })
+  const [f, setF]   = useState({ name:'', company:'', email:'', phone:'', whatsapp:'', nationality:'', city:'Al Khobar', country:'Saudi Arabia', category:'prospect', cr_number:'', vat_number:'', notes:'' })
   const [saving, setSaving] = useState(false)
+  const [err,    setErr]    = useState('')
   const set = k => e => setF(p => ({ ...p, [k]: e.target.value }))
   const ic2 = 'w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all bg-white'
   const lbl2 = 'block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1'
 
   const save = async () => {
-    if (!f.name.trim()) return alert('Name is required')
-    setSaving(true)
+    if (!f.name.trim()) return setErr('Name is required.')
+    setSaving(true); setErr('')
     try { const saved = await upsertClient(f); onSave(saved) }
-    catch(e) { alert('Failed: ' + e.message) }
-    setSaving(false)
+    catch(e) { setErr(e.message); setSaving(false) }
   }
   const fi = (label, key, type='text') => (
     <div>
@@ -353,11 +520,14 @@ function AddClientModal({ onSave, onClose }) {
             <textarea value={f.notes||''} onChange={set('notes')} rows={2} className={ic2+" resize-none"}/>
           </div>
         </div>
-        <div className="flex gap-2 justify-end px-5 pb-5">
-          <button onClick={onClose} className="px-4 py-2 text-sm border border-slate-200 rounded-xl hover:bg-slate-50">Cancel</button>
-          <button onClick={save} disabled={saving} className="px-4 py-2 text-sm text-white rounded-xl hover:opacity-90 disabled:opacity-60" style={{background:'#1A2B6B'}}>
-            {saving ? 'Saving…' : 'Save & select'}
-          </button>
+        <div className="flex gap-2 justify-end px-5 pb-5 flex-col">
+          {err && <p className="text-xs text-red-500 font-semibold px-1">{err}</p>}
+          <div className="flex gap-2 justify-end">
+            <button onClick={onClose} className="px-4 py-2 text-sm border border-slate-200 rounded-xl hover:bg-slate-50">Cancel</button>
+            <button onClick={save} disabled={saving} className="px-4 py-2 text-sm text-white rounded-xl hover:opacity-90 disabled:opacity-60" style={{background:'#1A2B6B'}}>
+              {saving ? 'Saving…' : 'Save & select'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -452,10 +622,13 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [
   const [addingClient, setAddingClient] = useState(false)
 
   const handleSave = async (andPreview=false) => {
-    if (!d.clientName.trim()) { alert('Please enter a client name.'); return }
+    if (!d.clientName.trim()) { showToast('Please enter a client name.', 'error'); return }
     setBusy(true)
     try { await onSave(d, andPreview) } finally { setBusy(false) }
   }
+
+  const [formErr, setFormErr] = useState('')
+  const showToast = (msg, type='error') => setFormErr(type === 'error' ? msg : '')
 
   const printNow = () => {
     printQuote(d, qNum)
@@ -565,7 +738,8 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [
         </div>
 
         {/* Buttons */}
-        <div className="flex flex-wrap gap-3 pb-4">
+        <div className="flex flex-wrap gap-3 pb-4 items-center">
+          {formErr && <p className="w-full text-xs text-red-500 font-semibold -mb-1">{formErr}</p>}
           <button onClick={()=>handleSave(false)} disabled={busy}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-60"
             style={{background:'#1A2B6B'}}>
