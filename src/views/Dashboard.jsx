@@ -362,14 +362,15 @@ export default function Dashboard({ quotes, leads = [], onOpen, onNew, onLeads }
   const convRate = useMemo(() => leads.length > 0
     ? Math.round((leads.filter(l=>l.status==='converted').length / leads.length) * 100)
     : 0, [leads])
-  const activeLeadCount = useMemo(() => leads.filter(l=>!['converted','lost'].includes(l.status)).length, [leads])
+  const activeLeadCount = useMemo(() => leads.filter(l => ['new','contacted','qualified'].includes(l.status)).length, [leads])
+  const draftSentCount  = useMemo(() => quotes.filter(q => ['draft','sent'].includes(q.stage)).length, [quotes])
 
   const stats = useMemo(() => [
     { label:'Pipeline Value',   value: fmt(revenue),      sub: `${quotes.length} quotes total`, icon: TrendingUp,  color:'#1A2B6B', bg:'#eff6ff' },
     { label:'Revenue Won',      value: fmt(wonRev),       sub: `${won} deals closed`,           icon: CheckCircle, color:'#059669', bg:'#ecfdf5' },
-    { label:'Active Leads',     value: activeLeadCount,   sub: `${convRate}% conversion rate`,  icon: Funnel,      color:'#8b5cf6', bg:'#f5f3ff' },
-    { label:'Jobs In Progress', value: inprog,            sub: 'active right now',              icon: Zap,         color:'#f59e0b', bg:'#fffbeb' },
-  ], [revenue, wonRev, won, activeLeadCount, convRate, inprog, quotes.length])
+    { label:'Active Leads',     value: activeLeadCount,   sub: `New · Contacted · Qualified`,   icon: Funnel,      color:'#8b5cf6', bg:'#f5f3ff' },
+    { label:'Draft & Sent',     value: draftSentCount,    sub: 'quotes awaiting action',        icon: Zap,         color:'#f59e0b', bg:'#fffbeb' },
+  ], [revenue, wonRev, won, activeLeadCount, draftSentCount, quotes.length])
 
   return (
     <div className="space-y-6 anim-fade">
