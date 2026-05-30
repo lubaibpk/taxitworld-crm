@@ -439,7 +439,7 @@ export default function App() {
                 ⚠ {overdueCount}
               </span>
             )}
-            {isAdmin && view !== 'new-quote' && view !== 'quote-detail' && (
+            {isAdmin && view === 'quotes-list' && (
               <button onClick={() => goto('new-quote')}
                 className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold text-white shadow-sm hover:shadow-md transition-all"
                 style={{background:'#1A2B6B'}}>
