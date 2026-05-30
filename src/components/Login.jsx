@@ -129,9 +129,15 @@ export default function Login({ onLogin }) {
           </button>
         </form>
 
-        <p style={{textAlign:'center',marginTop:'28px',marginBottom:0,fontSize:'12px',color:'#cbd5e1'}}>
-          © 2026 TaxitWorld Business Consultancy · KSA
-        </p>
+        <div style={{textAlign:'center',marginTop:'28px',marginBottom:0}}>
+          <p style={{fontSize:'12px',color:'#cbd5e1',margin:'0 0 4px'}}>
+            © {new Date().getFullYear()} TaxitWorld Business Consultancy · KSA
+          </p>
+          <p style={{fontSize:'11px',color:'#94a3b8',margin:'0 0 3px'}}>All rights reserved</p>
+          <a href="mailto:lubaib@taxitworld.com" style={{fontSize:'11px',color:'#94a3b8',textDecoration:'none'}}>
+            lubaib@taxitworld.com
+          </a>
+        </div>
       </div>
     </div>
   )

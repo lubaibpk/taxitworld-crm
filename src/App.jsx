@@ -480,6 +480,17 @@ export default function App() {
             )}
           </Suspense>
         </div>
+
+        {/* Footer */}
+        <footer className="border-t border-slate-100 px-6 py-3 flex flex-wrap items-center justify-between gap-2 bg-white">
+          <p className="text-[11px] text-slate-400">
+            © {new Date().getFullYear()} TaxitWorld Business Consultancy · All rights reserved
+          </p>
+          <a href="mailto:lubaib@taxitworld.com"
+            className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors">
+            lubaib@taxitworld.com
+          </a>
+        </footer>
       </main>
 
       {/* Toast */}

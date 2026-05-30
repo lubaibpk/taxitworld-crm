@@ -93,22 +93,33 @@ export async function permanentDeleteQuote(id) {
 // ── User management ───────────────────────────────────────────
 export async function fetchUsers() {
   const { data, error } = await supabase
-    .from('crm_users').select('*').order('created_at', { ascending: true })
+    .from('crm_users')
+    .select('id, name, username, role, created_at')  // password excluded
+    .order('created_at', { ascending: true })
   if (error) throw error
   return data
 }
 
 export async function createUser(u) {
   const { data, error } = await supabase
-    .from('crm_users').insert(u).select().single()
+    .rpc('crm_create_user', {
+      p_name: u.name, p_username: u.username,
+      p_password: u.password, p_role: u.role,
+    })
   if (error) throw error
-  return data
+  return data[0]
 }
 
 export async function updateUser(id, u) {
-  const { data, error } = await supabase
-    .from('crm_users').update(u).eq('id', id).select().single()
+  const { error } = await supabase
+    .rpc('crm_update_user', {
+      p_id: id, p_name: u.name, p_username: u.username,
+      p_password: u.password || '', p_role: u.role,
+    })
   if (error) throw error
+  // Return updated user (without password)
+  const { data } = await supabase
+    .from('crm_users').select('id, name, username, role').eq('id', id).single()
   return data
 }
 
@@ -119,9 +130,15 @@ export async function deleteUser(id) {
 
 export async function loginUser(username, password) {
   const { data, error } = await supabase
-    .from('crm_users').select('*').eq('username', username).eq('password', password).single()
-  if (error) return null
-  return data
+    .rpc('crm_login', { p_username: username, p_password: password })
+  if (error) {
+    console.warn('Login RPC error:', error.message, error.code)
+    return null
+  }
+  if (!data || data.length === 0) return null
+  const u = data[0]
+  // Normalise id to string regardless of DB type (uuid or text)
+  return { ...u, id: String(u.id) }
 }
 
 
