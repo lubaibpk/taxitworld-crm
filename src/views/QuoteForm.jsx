@@ -608,11 +608,12 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [
       hrTotal: '', hrPricingLabel: 'HR works as described for the company of size upto 10 employee per month',
     }
     if (!initial) return base
+    const editType = initial.type || 'misa'
     return {
       ...base,
       ...initial,
-      // If editing a quote that has no misaItems saved (e.g. converted from lead),
-      // fall back to the default MISA items so the form isn't blank
+      // Blank paymentTerms for non-MISA types if not already set
+      paymentTerms: initial.paymentTerms ?? (editType === 'misa' ? base.paymentTerms : ''),
       misaItems: (initial.misaItems && initial.misaItems.length > 0)
         ? initial.misaItems
         : JSON.parse(JSON.stringify(MISA_DEFAULT_ITEMS)),
@@ -668,7 +669,14 @@ export default function QuoteForm({ initial, qNum, onSave, onCancel, clients = [
             </div>
             <div>
               <label className={lbl}>Quote Type *</label>
-              <select className={ic} value={d.type} onChange={e=>setD({...d,type:e.target.value})}>
+              <select className={ic} value={d.type} onChange={e => {
+                const t = e.target.value
+                setD({
+                  ...d,
+                  type: t,
+                  paymentTerms: t === 'misa' ? '50% Initial payment, 25% after MISA, 25% after CR' : '',
+                })
+              }}>
                 <option value="misa">MISA / Company Setup</option>
                 <option value="accounts">Accounts Work</option>
                 <option value="hr">HR Works</option>
