@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
-import { Plus, Search, UserPlus, Phone, Mail, ChevronDown, ArrowRight, Trash2, Edit3, X, Activity, MessageSquare, Send, Clock } from 'lucide-react'
+import { Plus, Search, UserPlus, Phone, Mail, ChevronDown, ArrowRight, Edit3, X, Activity, MessageSquare, Send, Clock } from 'lucide-react'
 import { fetchLeads, upsertLead, deleteLead, upsertClient } from '../supabase.js'
 
 // ── Constants ─────────────────────────────────────────────────
@@ -829,10 +829,6 @@ export default function LeadsView({ users = [], clients = [], onConvertToQuote, 
                                 <Clock size={9}/>{(lead.activity_log||[]).length}
                               </span>
                             )}
-                            <button onClick={() => handleDelete(lead.id)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors" title="Delete">
-                              <Trash2 size={13}/>
-                            </button>
                           </div>
                         </td>
                       </tr>
