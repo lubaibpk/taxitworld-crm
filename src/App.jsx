@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LayoutDashboard, FilePlus, Kanban, List, Briefcase, Archive as ArchiveIcon, Trash2, Users, CheckSquare, Menu, X, ChevronLeft, Funnel } from 'lucide-react'
-import { fetchQuotes, upsertQuote, softDeleteQuote, restoreQuote, permanentDeleteQuote, fetchUsers, fetchClients, convertLead } from './supabase.js'
+import { fetchQuotes, upsertQuote, softDeleteQuote, restoreQuote, permanentDeleteQuote, fetchUsers, fetchClients, convertLead, fetchLeads } from './supabase.js'
 import { uid, qNumber, isOverdue, CHECKLISTS } from './lib.js'
 import Dashboard      from './views/Dashboard.jsx'
 import QuoteForm      from './views/QuoteForm.jsx'
@@ -56,6 +56,7 @@ export default function App() {
   const [quotes,      setQuotes]      = useState([])
   const [users,       setUsers]       = useState([])
   const [clients,     setClients]     = useState([])
+  const [leads,       setLeads]       = useState([])
   const [loading,     setLoading]     = useState(false)
   const [view,        setView]        = useState(() => {
     try { const u = JSON.parse(sessionStorage.getItem('tw_user')); return u ? (u.role==='admin'?'dashboard':'my-tasks') : null } catch { return null }
@@ -72,8 +73,8 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return
     setLoading(true)
-    Promise.all([fetchQuotes(), fetchUsers(), fetchClients()])
-      .then(([q, u, c]) => { setQuotes(q); setUsers(u); setClients(c); setLoading(false) })
+    Promise.all([fetchQuotes(), fetchUsers(), fetchClients(), fetchLeads()])
+      .then(([q, u, c, l]) => { setQuotes(q); setUsers(u); setClients(c); setLeads(l); setLoading(false) })
       .catch(e => { setErr(e.message); setLoading(false) })
   }, [currentUser?.id])
 
@@ -390,7 +391,7 @@ export default function App() {
 
         {/* Page content */}
         <div className="flex-1 p-4 md:p-6 lg:p-8">
-          {view==='dashboard'    && <Dashboard      quotes={activeQuotes} onOpen={openDetail} onNew={()=>goto('quotes-list')}/>}
+          {view==='dashboard'    && <Dashboard      quotes={activeQuotes} leads={leads} onOpen={openDetail} onNew={()=>goto('quotes-list')} onLeads={()=>goto('leads')}/>}
           {view==='new-quote'    && <QuoteForm       initial={editing} qNum={editing?.quoteNumber||qNumber(activeQuotes.length)} onSave={saveQuote} onCancel={editing?()=>goto('quotes-list'):null} clients={clients} onClientAdded={refreshClients}/>}
           {view==='pipeline'     && <Pipeline        quotes={activeQuotes} onOpen={openDetail}/>}
           {view==='quotes-list'  && <QuotesList      quotes={activeQuotes} onOpen={openDetail} onDelete={deleteQuote} onNew={()=>goto('new-quote')}/>}
