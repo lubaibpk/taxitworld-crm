@@ -238,65 +238,111 @@ export default function UserManagement({ users, onRefresh, currentUser, isSuperA
         </button>
       </div>
 
-      {/* Users table */}
+      {/* Users list */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              {['User', 'Username', 'Role', 'Actions'].map(h => (
-                <th key={h} className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => {
-              const badge = ROLE_BADGE[u.role] || ROLE_BADGE.staff
-              return (
-                <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-                        style={{background: u.role === 'superadmin' ? '#f59e0b' : '#1A2B6B'}}>
-                        {u.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+
+        {/* Desktop table — hidden on mobile */}
+        <div className="hidden md:block">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                {['User','Username','Role','Actions'].map(h => (
+                  <th key={h} className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => {
+                const badge = ROLE_BADGE[u.role] || ROLE_BADGE.staff
+                return (
+                  <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                          style={{background: u.role === 'superadmin' ? '#f59e0b' : '#1A2B6B'}}>
+                          {u.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-slate-800">{u.name}</p>
+                          {u.id === currentUser.id && <span className="text-[10px] font-bold text-blue-500">You</span>}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm text-slate-800">{u.name}</p>
-                        {u.id === currentUser.id && (
-                          <span className="text-[10px] font-bold text-blue-500">You</span>
+                    </td>
+                    <td className="px-5 py-4 font-mono text-xs text-slate-500">{u.username}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setIsCreating(false); setFormUser(u) }}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg text-white hover:opacity-90 transition-all"
+                          style={{background:'#1A2B6B'}}>
+                          <Edit2 size={12}/> Edit
+                        </button>
+                        <button onClick={() => setResetUser(u)}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
+                          <Lock size={12}/> Password
+                        </button>
+                        {u.id !== currentUser.id && u.role !== 'superadmin' && (
+                          <button onClick={() => handleDelete(u)}
+                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
+                            <Trash2 size={12}/> Delete
+                          </button>
                         )}
                       </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile cards — shown only on small screens */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {users.map(u => {
+            const badge = ROLE_BADGE[u.role] || ROLE_BADGE.staff
+            return (
+              <div key={u.id} className="p-4 space-y-3">
+                {/* User info */}
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                    style={{background: u.role === 'superadmin' ? '#f59e0b' : '#1A2B6B'}}>
+                    {u.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-sm text-slate-800 truncate">{u.name}</p>
+                      {u.id === currentUser.id && <span className="text-[10px] font-bold text-blue-500 shrink-0">You</span>}
                     </div>
-                  </td>
-                  <td className="px-5 py-4 font-mono text-xs text-slate-500">{u.username}</td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold ${badge.cls}`}>
-                      {badge.label}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button onClick={() => { setIsCreating(false); setFormUser(u) }}
-                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg text-white hover:opacity-90 transition-all shadow-sm"
-                        style={{background:'#1A2B6B'}}>
-                        <Edit2 size={12}/> Edit
-                      </button>
-                      <button onClick={() => setResetUser(u)}
-                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
-                        <Lock size={12}/> Password
-                      </button>
-                      {u.id !== currentUser.id && u.role !== 'superadmin' && (
-                        <button onClick={() => handleDelete(u)}
-                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
-                          <Trash2 size={12}/> Delete
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                    <p className="text-[11px] text-slate-400 font-mono">@{u.username}</p>
+                  </div>
+                  <span className={`inline-flex px-2 py-1 rounded-full text-[10px] font-bold shrink-0 ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                </div>
+                {/* Action buttons — 3-column grid */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={() => { setIsCreating(false); setFormUser(u) }}
+                    className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold rounded-xl text-white active:opacity-80"
+                    style={{background:'#1A2B6B'}}>
+                    <Edit2 size={13}/> Edit
+                  </button>
+                  <button onClick={() => setResetUser(u)}
+                    className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold rounded-xl border border-blue-300 text-blue-700 bg-blue-50 active:bg-blue-100">
+                    <Lock size={13}/> Password
+                  </button>
+                  {u.id !== currentUser.id && u.role !== 'superadmin' ? (
+                    <button onClick={() => handleDelete(u)}
+                      className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold rounded-xl border border-red-200 text-red-600 bg-red-50 active:bg-red-100">
+                      <Trash2 size={13}/> Delete
+                    </button>
+                  ) : <div/>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Modals */}
