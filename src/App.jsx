@@ -23,7 +23,7 @@ const ReportsView    = lazy(() => import('./views/ReportsView.jsx'))
 const LeadsView      = lazy(() => import('./views/LeadsView.jsx'))
 
 // ── Static nav/title config ───────────────────────────────────
-const ADMIN_NAV = [
+const SUPERADMIN_NAV = [
   { key:'dashboard',   label:'Dashboard',   icon:LayoutDashboard, group:'main'    },
   { key:'leads',       label:'Leads',       icon:Funnel,          group:'main'    },
   { key:'pipeline',    label:'Pipeline',    icon:Kanban,          group:'main'    },
@@ -33,6 +33,18 @@ const ADMIN_NAV = [
   { key:'trash',       label:'Trash',       icon:Trash2,          group:'records' },
   { key:'my-tasks',    label:'My Tasks',    icon:CheckSquare,     group:'admin'   },
   { key:'users',       label:'Users',       icon:Users,           group:'admin'   },
+  { key:'clients',     label:'Clients',     icon:Users,           group:'crm'     },
+  { key:'reports',     label:'Reports',     icon:LayoutDashboard, group:'crm'     },
+]
+const ADMIN_NAV = [
+  { key:'dashboard',   label:'Dashboard',   icon:LayoutDashboard, group:'main'    },
+  { key:'leads',       label:'Leads',       icon:Funnel,          group:'main'    },
+  { key:'pipeline',    label:'Pipeline',    icon:Kanban,          group:'main'    },
+  { key:'quotes-list', label:'All Quotes',  icon:List,            group:'records' },
+  { key:'jobs',        label:'Active Jobs', icon:Briefcase,       group:'records' },
+  { key:'archive',     label:'Archive',     icon:ArchiveIcon,     group:'records' },
+  { key:'trash',       label:'Trash',       icon:Trash2,          group:'records' },
+  { key:'my-tasks',    label:'My Tasks',    icon:CheckSquare,     group:'admin'   },
   { key:'clients',     label:'Clients',     icon:Users,           group:'crm'     },
   { key:'reports',     label:'Reports',     icon:LayoutDashboard, group:'crm'     },
 ]
@@ -47,7 +59,7 @@ const TITLES = {
   'jobs':        ['Active Jobs',     'Task checklists for in-progress work'],
   'archive':     ['Archive',         'Completed and closed deals'],
   'trash':       ['Trash',           'Deleted quotes — restore here'],
-  'users':       ['User Management', 'Manage team members and access'],
+  'users':       ['User Management', 'Superadmin — manage team members and access'],
   'my-tasks':    ['My Tasks',        'Jobs assigned to you'],
   'quote-detail':['Quote Detail',    'Full quote view'],
   'clients':     ['Clients',         'Client contact database'],
@@ -142,7 +154,9 @@ const Sidebar = memo(function Sidebar({
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white truncate leading-none">{currentUser.name}</p>
-                <p className="text-[10px] capitalize mt-0.5" style={{color:'rgba(255,255,255,0.4)'}}>{currentUser.role}</p>
+                <p className="text-[10px] capitalize mt-0.5" style={{color:'rgba(255,255,255,0.4)'}}>
+                  {currentUser.role === 'superadmin' ? '👑 Super Admin' : currentUser.role}
+                </p>
               </div>
             </div>
             <button onClick={logout}
@@ -192,7 +206,9 @@ export default function App() {
   const [sideOpen,       setSideOpen]       = useState(false)
   const [sideCollapsed,  setSideCollapsed]  = useState(false)
 
-  const isAdmin = currentUser?.role === 'admin'
+  const isSuperAdmin = currentUser?.role === 'superadmin'
+  const isAdmin      = currentUser?.role === 'admin' || isSuperAdmin
+  const NAV          = isSuperAdmin ? SUPERADMIN_NAV : isAdmin ? ADMIN_NAV : STAFF_NAV
 
   // ── Initial data load ───────────────────────────────────────
   useEffect(() => {
@@ -214,7 +230,6 @@ export default function App() {
   [activeQuotes, currentUser?.id])
   const detailQuote  = useMemo(() => quotes.find(q => q.id === detailId) || null, [quotes, detailId])
   const [title, sub] = TITLES[view || 'dashboard'] || ['TaxitWorld', '']
-  const NAV          = isAdmin ? ADMIN_NAV : STAFF_NAV
 
   // ── Auth ────────────────────────────────────────────────────
   const handleLogin = useCallback((user) => {
@@ -469,7 +484,7 @@ export default function App() {
             {view==='jobs'         && <Jobs            quotes={activeQuotes} onUpdate={updateQuote} onFinish={finishJob}/>}
             {view==='archive'      && <Archive         quotes={activeQuotes} onOpen={openDetail}/>}
             {view==='trash'        && <Trash           quotes={quotes} onRestore={handleRestore} onPermanentDelete={handlePermanentDelete}/>}
-            {view==='users'        && <UserManagement  users={users} onRefresh={refreshUsers} currentUser={currentUser}/>}
+            {view==='users'        && <UserManagement  users={users} onRefresh={refreshUsers} currentUser={currentUser} isSuperAdmin={isSuperAdmin}/>}
             {view==='my-tasks'     && <MyTasks         quotes={activeQuotes} currentUser={currentUser} onUpdate={updateQuote} onFinish={finishJob}/>}
             {view==='clients'      && <ClientsView     onRefresh={refreshClients}/>}
             {view==='reports'      && <ReportsView     quotes={quotes.filter(q => !q.deletedAt)}/>}
